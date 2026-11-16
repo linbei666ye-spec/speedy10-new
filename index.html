@@ -3,81 +3,78 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#101827">
-<title>极速赛车开奖记录预测</title>
+<title>极速赛车预测助手</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#101827;color:#edf2f7;font-family:Arial,"Microsoft YaHei",sans-serif;padding:16px}
-.wrap{max-width:720px;margin:auto}
-h1{font-size:23px;text-align:center;margin:12px 0 6px}
-.sub{text-align:center;color:#9aa9bd;font-size:13px;margin-bottom:18px}
-.card{background:#1b293b;border:1px solid #34445b;border-radius:13px;padding:15px;margin:13px 0}
+body{margin:0;padding:15px;background:#101827;color:#edf2f7;font-family:Arial,"Microsoft YaHei",sans-serif}
+.wrap{max-width:700px;margin:auto}
+h1{text-align:center;font-size:23px}
 h2{font-size:17px;margin:0 0 12px}
-button{border:0;border-radius:9px;padding:12px 15px;font-size:15px;font-weight:bold;cursor:pointer;background:#2585ed;color:white}
+.sub,.muted{color:#9aabc0;font-size:13px;line-height:1.7}
+.card{background:#1b293b;border:1px solid #35465e;border-radius:13px;padding:15px;margin:13px 0}
+button{border:0;border-radius:9px;padding:12px 15px;background:#2585ed;color:white;font-size:15px;font-weight:bold}
 button.secondary{background:#40516a}
 button.danger{background:#a83b48}
-button:active{opacity:.8}
-input,textarea{width:100%;background:#101827;color:white;border:1px solid #52647c;border-radius:8px;padding:12px;font-size:15px}
-textarea{min-height:105px;resize:vertical;line-height:1.6}
-.row{display:flex;gap:9px;flex-wrap:wrap}
+textarea{width:100%;min-height:210px;padding:12px;border-radius:9px;border:1px solid #52647c;background:#101827;color:white;font-size:15px;line-height:1.6}
+.row{display:flex;gap:9px;flex-wrap:wrap;margin-top:10px}
 .row button{flex:1}
-.muted{color:#9aa9bd;font-size:13px;line-height:1.6}
-.result{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
-.ball{width:39px;height:39px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#34445b;font-weight:bold}
-.ball.first{background:#e5a52b;color:#172033}
-.ball.pred{background:#167d65;color:white}
-.item{border-top:1px solid #34445b;padding:12px 0}
+.result{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.ball{width:38px;height:38px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#34445b;font-weight:bold}
+.first{background:#e6a72d;color:#172033}
+.pred{background:#167d65;color:white}
+.item{padding:12px 0;border-top:1px solid #35465e}
 .item:first-child{border-top:0}
-.itemhead{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.itemhead{display:flex;justify-content:space-between;gap:8px}
 .tag{font-size:12px;color:#a9c8ff}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
-.stat{background:#101827;border-radius:9px;padding:12px 4px}
-.stat strong{display:block;font-size:22px;margin-bottom:4px}
-a{color:#76baff}
+.stat{background:#101827;border-radius:9px;padding:12px 3px}
+.stat strong{display:block;font-size:22px;margin-bottom:5px}
+a{color:#80bdff}
 </style>
 </head>
 <body>
 <div class="wrap">
 <h1>🏁 极速赛车预测助手</h1>
-<div class="sub">开奖记录 · 历史统计 · 三号码预测 · 自动核对</div>
+<div class="sub" style="text-align:center">实时记录 · 历史统计 · 三号码预测 · 自动核对</div>
 
 <div class="card">
-<h2>第一步：打开开奖网站</h2>
-<p class="muted">打开网站查看最新及历史开奖记录。复制开奖文字后，返回这里粘贴。</p>
-<button onclick="window.open('https://m.1689687.com/html/jisusaiche/index.html','_blank')">打开最新开奖网站</button>
+<h2>开奖官方网站</h2>
+<p class="muted">打开网站，复制开奖记录，再粘贴到下面的输入框。</p>
+<button onclick="window.open('https://m.1689687.com/html/jisusaiche/index.html','_blank')">打开开奖网站</button>
 </div>
 
 <div class="card">
-<h2>第二步：导入开奖记录</h2>
-<p class="muted">支持格式示例：22:44 227092 1-10-4-5-9-2-7-3-8-6。可以一次粘贴多期，每期一行。</p>
-<textarea id="raw" placeholder="把复制的开奖记录粘贴到这里&#10;例如：22:44 227092 1-10-4-5-9-2-7-3-8-6"></textarea>
-<div class="row" style="margin-top:10px">
-<button onclick="importRecords()">识别并保存记录</button>
+<h2>导入开奖记录</h2>
+<p class="muted">支持你提供的格式：第一行期号，下面十行分别是第一名至第十名。可以一次粘贴多期。</p>
+<textarea id="raw" placeholder="34227099&#10;5&#10;10&#10;2&#10;6&#10;3&#10;1&#10;7&#10;8&#10;9&#10;4&#10;34227098&#10;2&#10;7&#10;4&#10;8&#10;5&#10;1&#10;10&#10;6&#10;9&#10;3"></textarea>
+<div class="row">
+<button onclick="importRecords()">识别并保存</button>
 <button class="secondary" onclick="document.getElementById('raw').value=''">清空输入框</button>
 </div>
-<div id="importMsg" class="muted" style="margin-top:10px"></div>
+<div id="message" class="muted" style="margin-top:10px"></div>
 </div>
 
 <div class="card">
 <h2>最新开奖结果</h2>
-<div id="latest" class="muted">还没有导入开奖记录</div>
+<div id="latest" class="muted">请先导入开奖记录</div>
 </div>
 
 <div class="card">
 <h2>下一期三个预测数字</h2>
-<div id="prediction" class="muted">导入开奖记录后生成预测</div>
-<div class="muted" style="margin-top:10px">根据近期历史记录中，数字出现在前三名的次数进行统计。预测仅供参考，不保证结果。</div>
+<div id="prediction" class="muted">导入记录后自动计算</div>
+<p class="muted">统计最近20期中各数字出现在前三名的次数，选出排名靠前的三个不同数字。预测仅供参考，不保证中奖。</p>
 </div>
 
 <div class="card">
-<h2>预测成绩</h2>
+<h2>预测成绩统计</h2>
 <div class="stats">
 <div class="stat"><strong id="total">0</strong><span class="muted">已核对</span></div>
 <div class="stat"><strong id="wins">0</strong><span class="muted">命中</span></div>
 <div class="stat"><strong id="rate">0%</strong><span class="muted">命中率</span></div>
 </div>
-<div id="predictionHistory" class="muted" style="margin-top:12px">暂无预测记录</div>
+<div id="predHistory" class="muted" style="margin-top:10px">暂无预测记录</div>
 </div>
 
 <div class="card">
@@ -88,148 +85,214 @@ a{color:#76baff}
 <div class="card">
 <h2>数据管理</h2>
 <div class="row">
-<button class="secondary" onclick="exportData()">导出备份</button>
+<button class="secondary" onclick="exportData()">导出数据备份</button>
 <button class="danger" onclick="clearData()">清空全部数据</button>
 </div>
-<p class="muted">记录保存在当前手机浏览器中。清除浏览器数据或更换手机可能导致记录丢失，请定期导出备份。</p>
+<p class="muted">数据保存在当前浏览器。请定期导出备份，避免清除浏览器数据后丢失。</p>
 </div>
 </div>
 
 <script>
-const KEY="speedy10_new_records_v1";
-const PKEY="speedy10_new_predictions_v1";
-let records=load(KEY,[]);
-let predictions=load(PKEY,[]);
+const RECORD_KEY="speedy10_vertical_records_v2";
+const PRED_KEY="speedy10_vertical_predictions_v2";
 
-function load(key, fallback){
+let records=load(RECORD_KEY,[]);
+let predictions=load(PRED_KEY,[]);
+
+function load(key,fallback){
  try{return JSON.parse(localStorage.getItem(key))||fallback}
  catch(e){return fallback}
 }
 function save(){
- localStorage.setItem(KEY,JSON.stringify(records));
- localStorage.setItem(PKEY,JSON.stringify(predictions));
+ localStorage.setItem(RECORD_KEY,JSON.stringify(records));
+ localStorage.setItem(PRED_KEY,JSON.stringify(predictions));
 }
 function esc(s){
- return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+ return String(s).replace(/[&<>"']/g,c=>({
+ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
 }
+
+/* 识别：期号一行，随后十行号码 */
 function parseText(text){
- const found=[];
- const lines=text.split(/\n+/);
- for(const line of lines){
-  const m=line.match(/(?:^|\s)(\d{6,9})\s+((?:10|[1-9])(?:\s*[-,，、\s]\s*(?:10|[1-9])){9})(?:\s|$)/);
-  if(!m) continue;
-  const nums=m[2].match(/10|[1-9]/g)?.map(Number)||[];
-  if(nums.length!==10||new Set(nums).size!==10) continue;
-  found.push({issue:m[1],numbers:nums,time:(line.match(/\b\d{1,2}:\d{2}\b/)||[])[0]||""});
+ const lines=text.replace(/\r/g,"").split("\n")
+  .map(x=>x.trim())
+  .filter(x=>x!=="");
+ const result=[];
+
+ for(let i=0;i<lines.length;i++){
+  if(!/^\d{6,9}$/.test(lines[i]))continue;
+
+  const issue=lines[i];
+  const nums=[];
+  let j=i+1;
+
+  while(j<lines.length && nums.length<10){
+   if(!/^(10|[1-9])$/.test(lines[j]))break;
+   nums.push(Number(lines[j]));
+   j++;
+  }
+
+  if(nums.length===10 && new Set(nums).size===10){
+   result.push({issue,numbers:nums});
+   i=j-1;
+  }
  }
- return found;
+ return result;
 }
+
 function importRecords(){
- const text=document.getElementById("raw").value.trim();
- if(!text){document.getElementById("importMsg").textContent="请先粘贴开奖记录。";return}
+ const text=document.getElementById("raw").value;
  const incoming=parseText(text);
+ const msg=document.getElementById("message");
+
  if(!incoming.length){
-  document.getElementById("importMsg").textContent="没有识别到记录。请确认每期包含6至9位期号，以及10个用横线分隔的号码。";
+  msg.textContent="没有识别到有效记录。请检查期号后面是否有完整的十行号码。";
   return;
  }
+
  let added=0,updated=0;
- for(const r of incoming){
-  const i=records.findIndex(x=>x.issue===r.issue);
-  if(i>=0){records[i]=r;updated++}
-  else{records.push(r);added++}
- }
+ incoming.forEach(r=>{
+  const index=records.findIndex(x=>x.issue===r.issue);
+  if(index>=0){
+   records[index]=r;
+   updated++;
+  }else{
+   records.push(r);
+   added++;
+  }
+ });
+
  records.sort((a,b)=>Number(b.issue)-Number(a.issue));
  save();
  checkPredictions();
  render();
- document.getElementById("importMsg").textContent=`识别到 ${incoming.length} 期；新增 ${added} 期，更新 ${updated} 期。`;
+
+ msg.textContent=`识别成功：${incoming.length}期，新增${added}期，更新${updated}期。`;
 }
-function makePrediction(){
- if(!records.length)return null;
- const recent=records.slice(0,20);
- const counts=Array(11).fill(0);
- const lastSeen=Array(11).fill(9999);
- recent.forEach((r,index)=>{
-  r.numbers.slice(0,3).forEach(n=>{
-   counts[n]++;
-   lastSeen[n]=Math.min(lastSeen[n],index);
-  });
- });
- const ranked=[];
- for(let n=1;n<=10;n++)ranked.push({n,count:counts[n],last:lastSeen[n]});
- ranked.sort((a,b)=>b.count-a.count||a.last-b.last||a.n-b.n);
- return ranked.slice(0,3).map(x=>x.n);
-}
+
 function nextIssue(issue){
  const n=Number(issue);
  return Number.isFinite(n)?String(n+1):"";
 }
+
+function makePrediction(){
+ if(!records.length)return [];
+ const recent=records.slice(0,20);
+ const counts=Array(11).fill(0);
+ const last=Array(11).fill(999);
+
+ recent.forEach((r,index)=>{
+  r.numbers.slice(0,3).forEach(n=>{
+   counts[n]++;
+   last[n]=Math.min(last[n],index);
+  });
+ });
+
+ return Array.from({length:10},(_,i)=>i+1)
+  .sort((a,b)=>counts[b]-counts[a]||last[a]-last[b]||a-b)
+  .slice(0,3);
+}
+
 function createPrediction(){
  if(!records.length)return;
  const latest=records[0];
- const nums=makePrediction();
- if(!nums)return;
  const target=nextIssue(latest.issue);
- const exists=predictions.some(p=>p.from===latest.issue);
- if(!exists){
-  predictions.unshift({from:latest.issue,target,numbers:nums,status:"待开奖"});
-  save();
+ if(predictions.some(p=>p.from===latest.issue)){
+  alert("这一期已经保存过预测了。");
+  return;
  }
+ predictions.unshift({
+  from:latest.issue,
+  target,
+  numbers:makePrediction(),
+  status:"待开奖"
+ });
+ save();
  render();
 }
+
 function checkPredictions(){
  predictions.forEach(p=>{
   const draw=records.find(r=>r.issue===p.target);
-  if(draw){
-   const hits=p.numbers.filter(n=>draw.numbers.slice(0,3).includes(n));
-   p.status=hits.length?"命中":"未命中";
-   p.hits=hits;
-  }
+  if(!draw)return;
+  const hits=p.numbers.filter(n=>draw.numbers.slice(0,3).includes(n));
+  p.status=hits.length?"命中":"未命中";
+  p.hits=hits;
  });
  save();
 }
+
 function render(){
  const latest=records[0];
+
  document.getElementById("latest").innerHTML=latest?
- `<div class="itemhead"><b>第 ${esc(latest.issue)} 期</b><span class="tag">${esc(latest.time)}</span></div>
- <div class="result">${latest.numbers.map((n,i)=>`<div class="ball ${i===0?'first':''}" title="第${i+1}名">${n}</div>`).join("")}</div>
- <p class="muted">金色数字为第一名：${latest.numbers[0]}</p>`:"还没有导入开奖记录";
+ `<b>第 ${esc(latest.issue)} 期</b>
+ <div class="result">${latest.numbers.map((n,i)=>
+ `<div class="ball ${i===0?'first':''}" title="第${i+1}名">${n}</div>`
+ ).join("")}</div>
+ <p class="muted">金色数字为第一名：${latest.numbers[0]}</p>`:
+ "请先导入开奖记录";
+
  if(latest){
   const nums=makePrediction();
   document.getElementById("prediction").innerHTML=
-  `<div class="muted">根据第 ${esc(latest.issue)} 期及之前的记录，推荐下一期：${esc(nextIssue(latest.issue))}</div>
+  `<div class="muted">根据第 ${esc(latest.issue)} 期及之前的记录，预测目标期号：${esc(nextIssue(latest.issue))}</div>
   <div class="result">${nums.map(n=>`<div class="ball pred">${n}</div>`).join("")}</div>
   <button style="margin-top:12px" onclick="createPrediction()">保存本期预测</button>`;
  }else{
-  document.getElementById("prediction").textContent="导入开奖记录后生成预测";
+  document.getElementById("prediction").textContent="导入记录后自动计算";
  }
- document.getElementById("history").innerHTML=records.slice(0,20).map(r=>
- `<div class="item"><div class="itemhead"><b>第 ${esc(r.issue)} 期</b><span class="tag">${esc(r.time)}</span></div>
- <div class="result">${r.numbers.map((n,i)=>`<div class="ball ${i===0?'first':''}">${n}</div>`).join("")}</div></div>`
+
+ document.getElementById("history").innerHTML=
+ records.slice(0,20).map(r=>
+ `<div class="item">
+ <div class="itemhead"><b>第 ${esc(r.issue)} 期</b><span class="tag">第一名：${r.numbers[0]}</span></div>
+ <div class="result">${r.numbers.map((n,i)=>
+ `<div class="ball ${i===0?'first':''}">${n}</div>`
+ ).join("")}</div></div>`
  ).join("")||"暂无记录";
+
  const checked=predictions.filter(p=>p.status==="命中"||p.status==="未命中");
  const wins=checked.filter(p=>p.status==="命中").length;
+
  document.getElementById("total").textContent=checked.length;
  document.getElementById("wins").textContent=wins;
- document.getElementById("rate").textContent=(checked.length?Math.round(wins/checked.length*100):0)+"%";
- document.getElementById("predictionHistory").innerHTML=predictions.slice(0,10).map(p=>
- `<div class="item">来源期：${esc(p.from)} → 目标期：${esc(p.target)}<br>
- 预测：${p.numbers.join("、")}　<span class="tag">${esc(p.status)}</span>
- ${p.hits?.length?`<br>命中数字：${p.hits.join("、")}`:""}</div>`
+ document.getElementById("rate").textContent=
+ (checked.length?Math.round(wins/checked.length*100):0)+"%";
+
+ document.getElementById("predHistory").innerHTML=
+ predictions.slice(0,15).map(p=>
+ `<div class="item">
+ 来源期：${esc(p.from)} → 目标期：${esc(p.target)}<br>
+ 预测数字：${p.numbers.join("、")}　
+ <span class="tag">${esc(p.status)}</span>
+ ${p.hits?.length?`<br>命中数字：${p.hits.join("、")}`:""}
+ </div>`
  ).join("")||"暂无预测记录";
 }
+
 function exportData(){
- const data={records,predictions};
- const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+ const blob=new Blob(
+ [JSON.stringify({records,predictions},null,2)],
+ {type:"application/json"}
+ );
  const url=URL.createObjectURL(blob);
  const a=document.createElement("a");
- a.href=url;a.download="极速赛车数据备份.json";a.click();
+ a.href=url;
+ a.download="极速赛车数据备份.json";
+ a.click();
  URL.revokeObjectURL(url);
 }
+
 function clearData(){
- if(!confirm("确定清空本机保存的全部开奖记录和预测记录吗？此操作不能撤销。"))return;
- records=[];predictions=[];save();render();
+ if(!confirm("确定清空全部开奖记录和预测记录吗？"))return;
+ records=[];
+ predictions=[];
+ save();
+ render();
 }
+
 checkPredictions();
 render();
 </script>
