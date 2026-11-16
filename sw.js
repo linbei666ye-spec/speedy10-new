@@ -1,5 +1,5 @@
 
-const CACHE = 'speedy10-new-v5';
+const CACHE = 'speedy10-new-v6';
 const FILES = ['./', './index.html', './manifest.webmanifest'];
 
 self.addEventListener('install', event => {
