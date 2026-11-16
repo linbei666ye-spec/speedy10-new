@@ -3,24 +3,24 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#101827">
-<title>极速赛车单号预测助手</title>
+<title>极速赛车自动预测助手</title>
 <style>
 *{box-sizing:border-box}
-body{margin:0;background:#101827;color:#edf2f7;font-family:Arial,"Microsoft YaHei",sans-serif;padding:14px}
+body{margin:0;padding:14px;background:#101827;color:#edf2f7;font-family:Arial,"Microsoft YaHei",sans-serif}
 .container{max-width:650px;margin:auto}
-h1{text-align:center;font-size:23px;margin:12px 0 5px}
+h1{text-align:center;font-size:23px;margin:12px 0 6px}
 .sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:18px}
 .card{background:#1b293b;border:1px solid #304158;border-radius:13px;padding:14px;margin-bottom:13px}
 h2{font-size:17px;margin:0 0 12px}
-.status{font-size:13px;color:#a5b4c8;line-height:1.8}
+.status,.muted,.notice{font-size:12px;color:#a5b4c8;line-height:1.8}
 .green{color:#4ade80}.red{color:#fb7185}.gold{color:#facc15}
 .numbers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
 .num{background:#26374e;border-radius:9px;text-align:center;padding:12px 2px;font-size:20px;font-weight:bold}
 .num.first{background:#facc15;color:#241b00}
 .num small{display:block;font-size:10px;font-weight:normal;margin-bottom:4px}
-button{border:0;border-radius:9px;padding:12px 14px;font-size:14px;font-weight:bold;background:#3b82f6;color:white;margin:5px 3px 0 0}
+button{border:0;border-radius:9px;padding:12px 14px;font-size:14px;font-weight:bold;background:#3b82f6;color:white;margin:7px 3px 0 0}
 button.secondary{background:#475569}
 button.danger{background:#b45353}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
@@ -34,15 +34,13 @@ button.danger{background:#b45353}
 .history-num{background:#26374e;border-radius:5px;padding:6px 8px;font-size:13px}
 .history-num.first{background:#facc15;color:#241b00;font-weight:bold}
 .prediction{font-size:14px;line-height:2}
-.muted{color:#94a3b8;font-size:12px}
 .empty{color:#94a3b8;font-size:13px;padding:10px 0}
-.notice{font-size:12px;color:#94a3b8;line-height:1.8}
 </style>
 </head>
 <body>
 <div class="container">
-<h1>极速赛车单号预测助手</h1>
-<div class="sub">自动开奖 · 最近20期历史 · 单号前三名预测</div>
+<h1>极速赛车自动预测助手</h1>
+<div class="sub">自动开奖 · 最近20期历史 · 自动保存预测</div>
 
 <div class="card">
 <h2>实时开奖数据</h2>
@@ -55,8 +53,8 @@ button.danger{background:#b45353}
 <div class="card">
 <h2>下一期单号预测</h2>
 <div id="prediction" class="prediction">正在计算……</div>
-<button onclick="savePrediction()">保存本期预测</button>
-<div class="muted">根据最近20期实际前三名出现次数计算，预测一个数字。</div>
+<div class="muted">每次成功刷新后自动保存预测，同一期只保存一次，不需要手动操作。</div>
+<div class="muted" id="autoSaveStatus">等待自动保存……</div>
 </div>
 
 <div class="card">
@@ -83,46 +81,46 @@ button.danger{background:#b45353}
 <h2>数据管理</h2>
 <button class="secondary" onclick="exportData()">导出数据备份</button>
 <button class="danger" onclick="clearPredictions()">清空预测记录</button>
-<div class="notice">开奖记录和预测记录保存在本机浏览器中。更换手机或清除浏览器数据可能导致本地记录丢失，请定期导出备份。</div>
+<div class="notice">开奖记录和预测记录保存在本机浏览器。清除浏览器数据或更换手机可能导致本地记录丢失，请定期备份。</div>
 </div>
 
 <div class="card">
-<div class="notice">
-数据自动读取自彩数据接口。请核对期号和号码是否与原开奖网站一致。预测仅供统计参考，不保证开奖结果，也不构成投注建议。
-</div>
+<div class="notice">预测根据近期前三名出现次数进行统计，仅供参考，不保证开奖结果，也不构成投注建议。请核对数据是否与原开奖网站一致。</div>
 </div>
 </div>
 
 <script>
 const API='https://speedy10-data.lin-bei666ye.workers.dev/';
-const RECORD_KEY='speedy10_single_records_v3';
-const PRED_KEY='speedy10_single_predictions_v3';
+const RECORD_KEY='speedy10_single_records_v4';
+const PRED_KEY='speedy10_single_predictions_v4';
 
 let records=load(RECORD_KEY,[]);
 let predictions=load(PRED_KEY,[]);
 let nextIssue='';
 let latestIssue='';
 let refreshing=false;
-let lastUpdate='';
 
 function load(key,fallback){
-  try{return JSON.parse(localStorage.getItem(key))||fallback}catch(e){return fallback}
+  try{return JSON.parse(localStorage.getItem(key))||fallback}
+  catch(e){return fallback}
 }
 function save(){
   localStorage.setItem(RECORD_KEY,JSON.stringify(records));
   localStorage.setItem(PRED_KEY,JSON.stringify(predictions));
 }
-function cleanIssue(v){
-  return String(v??'').trim();
+function escapeHTML(s){
+  return String(s??'').replace(/[&<>"']/g,c=>({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[c]));
 }
 function normalizeRecord(obj){
   if(!obj||typeof obj!=='object'||Array.isArray(obj))return null;
   const issue=obj.preDrawIssue??obj.issue??obj.drawIssue??obj.period??obj.expect??obj.qishu;
   const code=obj.preDrawCode??obj.drawCode??obj.openCode??obj.code??obj.numbers??obj.result;
   if(issue===undefined||code===undefined||typeof code!=='string')return null;
-  const nums=code.split(/[,，\s]+/).map(x=>Number(x)).filter(x=>Number.isInteger(x)&&x>=1&&x<=10);
+  const nums=code.split(/[,，\s]+/).map(Number).filter(n=>Number.isInteger(n)&&n>=1&&n<=10);
   if(nums.length!==10)return null;
-  return {issue:cleanIssue(issue),numbers:nums};
+  return {issue:String(issue).trim(),numbers:nums};
 }
 function findRecords(value,out=[],depth=0){
   if(depth>8||value==null)return out;
@@ -143,14 +141,14 @@ function localDate(offset=0){
   return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
 }
 async function getJSON(url){
-  const response=await fetch(url,{cache:'no-store'});
-  if(!response.ok)throw new Error('服务器连接失败：HTTP '+response.status);
-  return await response.json();
+  const res=await fetch(url,{cache:'no-store'});
+  if(!res.ok)throw new Error('服务器连接失败：HTTP '+res.status);
+  return await res.json();
 }
 function addRecord(r){
   if(!r||!r.issue)return;
-  const old=records.findIndex(x=>String(x.issue)===String(r.issue));
-  if(old>=0)records[old]=r;
+  const i=records.findIndex(x=>String(x.issue)===String(r.issue));
+  if(i>=0)records[i]=r;
   else records.push(r);
 }
 function sortRecords(){
@@ -161,69 +159,14 @@ function sortRecords(){
   });
   records=records.slice(0,500);
 }
-async function refreshAll(){
-  if(refreshing)return;
-  refreshing=true;
-  document.getElementById('status').innerHTML='正在更新最新开奖和历史记录……';
-  try{
-    const current=await getJSON(API+'?action=current&t='+Date.now());
-    if(current.errorCode!==0)throw new Error(current.message||'当前开奖接口返回错误');
-    const data=current.result&&current.result.data;
-    if(!data)throw new Error('没有读取到开奖内容');
-    const currentRecord=normalizeRecord({
-      preDrawIssue:data.preDrawIssue,
-      preDrawCode:data.preDrawCode
-    });
-    if(!currentRecord)throw new Error('最新开奖数据格式不正确');
-    addRecord(currentRecord);
-    latestIssue=currentRecord.issue;
-    nextIssue=cleanIssue(data.drawIssue||'');
-    let historyCount=0;
-    let historyErrors=0;
-
-    for(let day=0;day<2;day++){
-      try{
-        const date=localDate(day);
-        const h=await getJSON(API+'?action=history&date='+encodeURIComponent(date)+'&t='+Date.now());
-        if(h.errorCode!==0)throw new Error('历史接口返回错误');
-        const found=findRecords(h);
-        found.forEach(r=>{addRecord(r);historyCount++});
-      }catch(e){
-        historyErrors++;
-      }
-    }
-    sortRecords();
-    checkPredictions();
-    save();
-    lastUpdate=new Date().toLocaleTimeString();
-    document.getElementById('status').innerHTML=
-      '<span class="green">连接成功</span>　最后更新：'+lastUpdate+
-      '<br>最新已开奖期号：<b>'+escapeHTML(latestIssue)+'</b>'+
-      '<br>下一期：'+escapeHTML(nextIssue||'暂未提供')+
-      '<br>历史接口读取：'+historyCount+' 条'+
-      (historyErrors?'（部分日期读取失败）':'');
-    render();
-  }catch(e){
-    document.getElementById('status').innerHTML=
-      '<span class="red">更新失败：</span>'+escapeHTML(e.message)+
-      '<br>保留上次成功读取的数据，请稍后重试。';
-    render();
-  }finally{
-    refreshing=false;
-  }
-}
-function escapeHTML(s){
-  return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
 function getTopPrediction(){
   const recent=records.slice(0,20);
   if(!recent.length)return null;
-  const counts={};
-  const lastSeen={};
+  const counts={},lastSeen={};
   for(let n=1;n<=10;n++){counts[n]=0;lastSeen[n]=9999}
   recent.forEach((r,index)=>{
     r.numbers.slice(0,3).forEach(n=>{
-      counts[n]=(counts[n]||0)+1;
+      counts[n]++;
       if(lastSeen[n]===9999)lastSeen[n]=index;
     });
   });
@@ -233,109 +176,21 @@ function getTopPrediction(){
     if(lastSeen[a]!==lastSeen[b])return lastSeen[a]-lastSeen[b];
     return a-b;
   });
-  return {number:ranked[0],counts:counts,periods:recent.length};
+  return {number:ranked[0],counts,periods:recent.length};
 }
-function renderLatest(){
-  const r=records[0];
-  if(!r){document.getElementById('latest').innerHTML='<div class="empty">暂无开奖记录</div>';return}
-  document.getElementById('latest').innerHTML=
-    '<div class="muted">第 '+escapeHTML(r.issue)+' 期</div>'+
-    '<div class="numbers">'+r.numbers.map((n,i)=>
-      '<div class="num '+(i===0?'first':'')+'"><small>'+(i+1===1?'第一名':('第'+(i+1)+'名'))+'</small>'+n+'</div>'
-    ).join('')+'</div>';
-}
-function renderHistory(){
-  const list=document.getElementById('historyList');
-  const recent=records.slice(0,20);
-  document.getElementById('historyStatus').textContent='已保存 '+recent.length+' / 20 期';
-  if(!recent.length){list.innerHTML='<div class="empty">还没有历史开奖记录</div>';return}
-  list.innerHTML=recent.map(r=>
-    '<div class="history-item">'+
-    '<div class="history-head"><b>第 '+escapeHTML(r.issue)+' 期</b><span class="gold">第一名：'+r.numbers[0]+'</span></div>'+
-    '<div class="history-numbers">'+r.numbers.map((n,i)=>
-      '<span class="history-num '+(i===0?'first':'')+'">'+(i+1)+'. '+n+'</span>'
-    ).join('')+'</div></div>'
-  ).join('');
-}
-function renderPrediction(){
+function autoSavePrediction(){
   const p=getTopPrediction();
-  const el=document.getElementById('prediction');
-  if(!p){el.innerHTML='需要先读取开奖历史数据。';return}
-  el.innerHTML='预测下一期：<strong class="gold" style="font-size:32px">'+p.number+'</strong><br>'+
-    '目标期号：'+escapeHTML(nextIssue||'等待接口提供')+'<br>'+
-    '统计范围：最近 '+p.periods+' 期<br>'+
-    '该数字在前三名出现次数：'+p.counts[p.number]+' 次';
-}
-function checkPredictions(){
-  predictions.forEach(p=>{
-    if(p.status==='已核对')return;
-    const r=records.find(x=>String(x.issue)===String(p.targetIssue));
-    if(!r)return;
-    p.status=r.numbers.slice(0,3).includes(Number(p.number))?'命中':'未命中';
-    p.actualTop3=r.numbers.slice(0,3);
-  });
-}
-function renderStats(){
-  const checked=predictions.filter(p=>p.status==='命中'||p.status==='未命中');
-  const hits=checked.filter(p=>p.status==='命中').length;
-  document.getElementById('hitCount').textContent=hits;
-  document.getElementById('checkedCount').textContent=checked.length;
-  document.getElementById('hitRate').textContent=(checked.length?(hits/checked.length*100).toFixed(1):'0')+'%';
-}
-function renderPredictionList(){
-  const el=document.getElementById('predictionList');
-  if(!predictions.length){el.innerHTML='<div class="empty">还没有保存预测</div>';return}
-  el.innerHTML=predictions.slice().reverse().slice(0,50).map(p=>
-    '<div class="history-item prediction">'+
-    '预测目标：第 <b>'+escapeHTML(p.targetIssue)+'</b> 期<br>'+
-    '预测数字：<strong class="gold" style="font-size:20px">'+escapeHTML(p.number)+'</strong><br>'+
-    '结果：<b class="'+(p.status==='命中'?'green':p.status==='未命中'?'red':'gold')+'">'+escapeHTML(p.status)+'</b>'+
-    (p.actualTop3?'　实际前三名：'+p.actualTop3.join('、'):'')+
-    '</div>'
-  ).join('');
-}
-function render(){
-  renderLatest();
-  renderHistory();
-  renderPrediction();
-  renderStats();
-  renderPredictionList();
-}
-function savePrediction(){
-  const p=getTopPrediction();
-  if(!p){alert('还没有足够的开奖数据，请先刷新。');return}
-  if(!nextIssue){alert('接口暂未提供下一期期号，请稍后刷新再保存。');return}
-  if(predictions.some(x=>String(x.targetIssue)===String(nextIssue))){
-    alert('这一期已经保存过预测了。');return;
+  const el=document.getElementById('autoSaveStatus');
+  if(!p||!nextIssue){
+    el.textContent='暂时无法自动保存：等待开奖数据和下一期期号。';
+    return;
+  }
+  const exists=predictions.some(x=>String(x.targetIssue)===String(nextIssue));
+  if(exists){
+    el.textContent='第 '+nextIssue+' 期预测已自动保存，不会重复保存。';
+    return;
   }
   predictions.push({
     sourceIssue:latestIssue,
     targetIssue:nextIssue,
-    number:p.number,
-    status:'待开奖',
-    createdAt:new Date().toISOString()
-  });
-  save();
-  render();
-  alert('已保存！预测第 '+nextIssue+' 期，数字：'+p.number);
-}
-function exportData(){
-  const data={records:records,predictions:predictions,exportedAt:new Date().toISOString()};
-  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='极速赛车数据备份.json';a.click();
-  URL.revokeObjectURL(url);
-}
-function clearPredictions(){
-  if(!confirm('确定清空所有预测记录和成绩统计吗？开奖记录会保留。'))return;
-  predictions=[];
-  save();
-  render();
-}
-render();
-refreshAll();
-setInterval(refreshAll,30000);
-</script>
-</body>
-</html>
+    number:p.numbe
