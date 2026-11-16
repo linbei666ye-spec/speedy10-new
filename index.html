@@ -1,8 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#101827">
 <title>极速赛车自动预测助手</title>
 <style>
 *{box-sizing:border-box}
@@ -13,7 +15,9 @@ h1{text-align:center;font-size:23px}
 .card{background:#1b293b;border:1px solid #304158;border-radius:13px;padding:14px;margin-bottom:13px}
 h2{font-size:17px;margin:0 0 12px}
 .status,.muted,.notice{font-size:12px;color:#a5b4c8;line-height:1.8}
-.green{color:#4ade80}.red{color:#fb7185}.gold{color:#facc15}
+.green{color:#4ade80}
+.red{color:#fb7185}
+.gold{color:#facc15}
 .numbers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
 .num{background:#26374e;border-radius:9px;text-align:center;padding:12px 2px;font-size:20px;font-weight:bold}
 .num.first{background:#facc15;color:#241b00}
@@ -26,10 +30,8 @@ button.danger{background:#b45353}
 .stat strong{display:block;font-size:23px;color:#facc15}
 .stat span{font-size:11px;color:#a5b4c8}
 .history-item{padding:12px 0;border-bottom:1px solid #34445a}
-.history-head{display:flex;justify-content:space-between;gap:8px;font-size:13px;margin-bottom:9px}
-.history-numbers{display:flex;flex-wrap:wrap;gap:5px}
-.history-num{background:#26374e;border-radius:5px;padding:6px 8px;font-size:13px}
-.history-num.first{background:#facc15;color:#241b00;font-weight:bold}
+.history-head{font-size:12px;color:#94a3b8;margin-bottom:7px}
+.history-line{font-size:19px;font-weight:bold;letter-spacing:1px;word-break:break-word}
 .prediction{font-size:14px;line-height:2}
 .empty{color:#94a3b8;font-size:13px;padding:10px 0}
 </style>
@@ -37,7 +39,7 @@ button.danger{background:#b45353}
 <body>
 <div class="container">
 <h1>极速赛车自动预测助手</h1>
-<div class="sub">实时开奖 · 历史记录 · 自动保存预测</div>
+<div class="sub">实时开奖 · 自动预测 · 自动保存</div>
 
 <div class="card">
 <h2>实时开奖数据</h2>
@@ -50,7 +52,7 @@ button.danger{background:#b45353}
 <div class="card">
 <h2>下一期单号预测</h2>
 <div id="prediction" class="prediction">等待开奖数据……</div>
-<div class="muted">根据最近已读取记录的前三名出现次数统计，仅供参考。</div>
+<div class="muted">根据最近读取到的开奖数据前三名出现次数统计，仅供参考。</div>
 <div class="muted" id="autoSaveStatus">等待自动保存……</div>
 </div>
 
@@ -78,7 +80,7 @@ button.danger{background:#b45353}
 <h2>数据管理</h2>
 <button class="secondary" onclick="exportData()">导出数据备份</button>
 <button class="danger" onclick="clearPredictions()">清空预测记录</button>
-<div class="notice">记录保存在本机浏览器。更换手机或清除浏览器数据可能导致记录丢失，请定期备份。</div>
+<div class="notice">记录保存在本机浏览器。清除浏览器数据或更换手机可能导致记录丢失，请定期备份。</div>
 </div>
 
 <div class="card">
@@ -88,8 +90,8 @@ button.danger{background:#b45353}
 
 <script>
 const API='https://speedy10-data.lin-bei666ye.workers.dev/';
-const RECORD_KEY='speedy10_single_records_v5';
-const PRED_KEY='speedy10_single_predictions_v5';
+const RECORD_KEY='speedy10_single_records_v6';
+const PRED_KEY='speedy10_single_predictions_v6';
 
 let records=load(RECORD_KEY,[]);
 let predictions=load(PRED_KEY,[]);
@@ -190,12 +192,12 @@ function autoSavePrediction(){
   const p=getTopPrediction();
   const el=document.getElementById('autoSaveStatus');
   if(!p||!nextIssue){
-    el.textContent='等待足够的开奖数据和下一期期号。';
+    el.textContent='等待开奖数据和下一期期号。';
     return;
   }
   const exists=predictions.some(x=>String(x.targetIssue)===String(nextIssue));
   if(exists){
-    el.textContent='第 '+nextIssue+' 期预测已保存，不重复保存。';
+    el.textContent='第 '+nextIssue+' 期预测已保存，不会重复保存。';
     return;
   }
   predictions.push({
@@ -222,14 +224,16 @@ function render(){
   if(p){
     document.getElementById('prediction').innerHTML=
       '预测下一期：<strong class="gold" style="font-size:30px">'+p.number+'</strong>'+
-      '<br>统计期数：'+p.periods+'期<br>该数字近期前三名出现次数：'+p.counts[p.number]+'次';
+      '<br>统计期数：'+p.periods+'期'+
+      '<br>该数字近期前三名出现次数：'+p.counts[p.number]+'次';
   }
 
+  // 历史开奖记录：只显示十个号码，用短横线连接
   document.getElementById('historyList').innerHTML=records.slice(0,20).map(r=>
-    '<div class="history-item"><div class="history-head"><span>第 '+r.issue+' 期</span></div>'+
-    '<div class="history-numbers">'+r.numbers.map((n,i)=>
-      '<span class="history-num '+(i===0?'first':'')+'">'+(i+1)+': '+n+'</span>'
-    ).join('')+'</div></div>'
+    '<div class="history-item">'+
+    '<div class="history-head">第 '+r.issue+' 期</div>'+
+    '<div class="history-line">'+r.numbers.join('-')+'</div>'+
+    '</div>'
   ).join('')||'<div class="empty">暂时没有历史记录</div>';
 
   let checked=0,hits=0;
@@ -244,11 +248,12 @@ function render(){
   document.getElementById('checkedCount').textContent=checked;
   document.getElementById('hitRate').textContent=checked?Math.round(hits/checked*100)+'%':'0%';
 
-  document.getElementById('predictionList').innerHTML=predictions.slice().reverse().slice(0,50).map(p=>
-    '<div class="history-item">目标期号：'+p.targetIssue+
-    '　预测数字：<strong class="gold">'+p.number+'</strong>'+
-    '<div class="muted">'+(p.time||'')+'</div></div>'
-  ).join('')||'<div class="empty">暂无预测记录</div>';
+  document.getElementById('predictionList').innerHTML=
+    predictions.slice().reverse().slice(0,50).map(p=>
+      '<div class="history-item">目标期号：'+p.targetIssue+
+      '　预测数字：<strong class="gold">'+p.number+'</strong>'+
+      '<div class="muted">'+(p.time||'')+'</div></div>'
+    ).join('')||'<div class="empty">暂无预测记录</div>';
 }
 
 async function refreshAll(){
@@ -256,10 +261,11 @@ async function refreshAll(){
   refreshing=true;
   const status=document.getElementById('status');
   status.textContent='正在连接开奖数据……';
+
   try{
     const json=await getJSON(API+'?action=current');
     const draw=findDrawObject(json);
-    if(!draw)throw new Error('接口返回成功，但没有找到开奖数据');
+    if(!draw)throw new Error('没有找到开奖数据');
 
     const current=normalizeRecord(draw);
     if(!current)throw new Error('开奖数据格式无法识别');
@@ -271,7 +277,6 @@ async function refreshAll(){
     status.innerHTML='<span class="green">连接成功</span> · 最新期号：'+current.issue+
       (nextIssue?' · 下一期期号：'+nextIssue:'');
 
-    // 历史接口失败不会影响实时开奖显示
     try{
       const date=draw.preDrawDate||new Date().toISOString().slice(0,10);
       const history=await getJSON(API+'?action=history&date='+encodeURIComponent(date));
@@ -281,7 +286,7 @@ async function refreshAll(){
         '历史接口读取到 '+found.length+' 条记录。';
     }catch(e){
       document.getElementById('historyStatus').textContent=
-        '历史记录暂时无法读取；实时开奖数据不受影响。';
+        '历史记录暂时无法读取，实时开奖不受影响。';
     }
 
     sortRecords();
