@@ -251,7 +251,6 @@ function render(){
       '<br>该数字前三名出现次数：'+p.counts[p.number]+'次';
   }
 
-  // 历史开奖记录：只显示十个号码，用短横线连接
   document.getElementById('historyList').innerHTML=records.slice(0,20).map(r=>
     '<div class="history-item">'+
     '<div class="history-head">第 '+r.issue+' 期</div>'+
@@ -272,12 +271,17 @@ function render(){
   document.getElementById('hitRate').textContent=checked?Math.round(hits/checked*100)+'%':'0%';
 
   document.getElementById('predictionList').innerHTML=
-    predictions.slice().reverse().slice(0,50).map(p=>
-      '<div class="history-item">目标期号：'+p.targetIssue+
+    predictions.slice().reverse().slice(0,50).map(p=>{
+      const resultDraw=records.find(r=>String(r.issue)===String(p.targetIssue));
+      const isHit=resultDraw&&resultDraw.numbers.slice(0,3).includes(Number(p.number));
+      const resultText=resultDraw?(isHit?'正确':'错误'):'等待开奖';
+      const resultClass=resultDraw?(isHit?'green':'red'):'muted';
+      return '<div class="history-item">目标期号：'+p.targetIssue+
       '　统计范围：'+(p.period||20)+'期'+
       '　预测数字：<strong class="gold">'+p.number+'</strong>'+
-      '<div class="muted">'+(p.time||'')+'</div></div>'
-    ).join('')||'<div class="empty">暂无预测记录</div>';
+      '<br>预测结果：<strong class="'+resultClass+'">'+resultText+'</strong>'+
+      '<div class="muted">'+(p.time||'')+'</div></div>';
+    }).join('')||'<div class="empty">暂无预测记录</div>';
 }
 
 async function refreshAll(){
