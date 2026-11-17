@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -51,8 +50,16 @@ button.danger{background:#b45353}
 
 <div class="card">
 <h2>下一期单号预测</h2>
+<div class="muted">选择统计范围</div>
+<select id="periodSelect" onchange="changePeriod(this.value)" style="width:100%;padding:12px;margin:8px 0 12px;border-radius:9px;background:#26374e;color:#fff;border:1px solid #475569;font-size:16px">
+<option value="10">最近10期</option>
+<option value="20">最近20期</option>
+<option value="30">最近30期</option>
+<option value="40">最近40期</option>
+<option value="50">最近50期</option>
+</select>
 <div id="prediction" class="prediction">等待开奖数据……</div>
-<div class="muted">根据最近读取到的开奖数据前三名出现次数统计，仅供参考。</div>
+<div class="muted">根据所选期数的前三名出现次数统计，仅供参考。</div>
 <div class="muted" id="autoSaveStatus">等待自动保存……</div>
 </div>
 
@@ -92,9 +99,13 @@ button.danger{background:#b45353}
 const API='https://speedy10-data.lin-bei666ye.workers.dev/';
 const RECORD_KEY='speedy10_single_records_v6';
 const PRED_KEY='speedy10_single_predictions_v6';
+const PERIOD_KEY='speedy10_prediction_period_v1';
 
 let records=load(RECORD_KEY,[]);
 let predictions=load(PRED_KEY,[]);
+let selectedPeriod=Number(localStorage.getItem(PERIOD_KEY))||20;
+if(![10,20,30,40,50].includes(selectedPeriod))selectedPeriod=20;
+predictions.forEach(p=>{if(!p.period)p.period=20;});
 let nextIssue='';
 let latestIssue='';
 let refreshing=false;
@@ -167,8 +178,8 @@ function sortRecords(){
   records=records.slice(0,500);
 }
 
-function getTopPrediction(){
-  const recent=records.slice(0,20);
+function getTopPrediction(period=selectedPeriod){
+  const recent=records.slice(0,period);
   if(!recent.length)return null;
   const counts={};
   const lastSeen={};
@@ -188,14 +199,23 @@ function getTopPrediction(){
   return {number:ranked[0],counts,periods:recent.length};
 }
 
+function changePeriod(value){
+  const n=Number(value);
+  if(![10,20,30,40,50].includes(n))return;
+  selectedPeriod=n;
+  localStorage.setItem(PERIOD_KEY,String(n));
+  autoSavePrediction();
+  render();
+}
+
 function autoSavePrediction(){
-  const p=getTopPrediction();
+  const p=getTopPrediction(selectedPeriod);
   const el=document.getElementById('autoSaveStatus');
   if(!p||!nextIssue){
     el.textContent='等待开奖数据和下一期期号。';
     return;
   }
-  const exists=predictions.some(x=>String(x.targetIssue)===String(nextIssue));
+  const exists=predictions.some(x=>String(x.targetIssue)===String(nextIssue)&&Number(x.period||20)===selectedPeriod);
   if(exists){
     el.textContent='第 '+nextIssue+' 期预测已保存，不会重复保存。';
     return;
@@ -204,6 +224,7 @@ function autoSavePrediction(){
     sourceIssue:latestIssue,
     targetIssue:nextIssue,
     number:p.number,
+    period:selectedPeriod,
     time:new Date().toLocaleString()
   });
   save();
@@ -220,12 +241,14 @@ function render(){
       ).join('')+'</div>';
   }
 
-  const p=getTopPrediction();
+  const selector=document.getElementById('periodSelect');
+  if(selector)selector.value=String(selectedPeriod);
+  const p=getTopPrediction(selectedPeriod);
   if(p){
     document.getElementById('prediction').innerHTML=
       '预测下一期：<strong class="gold" style="font-size:30px">'+p.number+'</strong>'+
-      '<br>统计期数：'+p.periods+'期'+
-      '<br>该数字近期前三名出现次数：'+p.counts[p.number]+'次';
+      '<br>统计范围：最近'+selectedPeriod+'期'+
+      '<br>该数字前三名出现次数：'+p.counts[p.number]+'次';
   }
 
   // 历史开奖记录：只显示十个号码，用短横线连接
@@ -237,7 +260,7 @@ function render(){
   ).join('')||'<div class="empty">暂时没有历史记录</div>';
 
   let checked=0,hits=0;
-  predictions.forEach(p=>{
+  predictions.filter(p=>Number(p.period||20)===selectedPeriod).forEach(p=>{
     const r=records.find(x=>String(x.issue)===String(p.targetIssue));
     if(r){
       checked++;
@@ -251,6 +274,7 @@ function render(){
   document.getElementById('predictionList').innerHTML=
     predictions.slice().reverse().slice(0,50).map(p=>
       '<div class="history-item">目标期号：'+p.targetIssue+
+      '　统计范围：'+(p.period||20)+'期'+
       '　预测数字：<strong class="gold">'+p.number+'</strong>'+
       '<div class="muted">'+(p.time||'')+'</div></div>'
     ).join('')||'<div class="empty">暂无预测记录</div>';
