@@ -1,379 +1,267 @@
-<!DOCTYPE html>
+
+<!doctype html>
 <html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#101827">
-<title>开奖记录分析助手</title>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827"><title>Speedy10 双区预测</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#101827;color:#eef2f7;font-family:Arial,"Microsoft YaHei",sans-serif;padding:14px}
-.app{max-width:720px;margin:auto}
-h1{text-align:center;color:#facc15;font-size:23px}
-.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:18px}
-.card{background:#1b293b;border:1px solid #34445a;border-radius:13px;padding:14px;margin-bottom:13px}
-h2{font-size:17px;margin:0 0 12px}
-h3{font-size:14px;color:#facc15}
-button{border:0;border-radius:8px;padding:11px 13px;margin:4px 3px 0 0;background:#3b82f6;color:white;font-weight:bold}
-button.secondary{background:#475569}
-button.active{background:#facc15;color:#202020}
-button.danger{background:#a94444}
-select{width:100%;padding:11px;background:#26374e;color:white;border:1px solid #475569;border-radius:8px;margin:7px 0}
-.page{display:none}.page.show{display:block}
-.muted{color:#a5b4c8;font-size:12px;line-height:1.8}
-.status{font-size:12px;color:#a5b4c8;line-height:1.8}
-.numbers{display:grid;grid-template-columns:repeat(5,1fr);gap:7px;margin-top:12px}
-.num{background:#26374e;border-radius:9px;text-align:center;padding:11px 2px;font-size:20px;font-weight:bold}
-.num.first{background:#facc15;color:#202020}
-.num small{display:block;font-size:10px;font-weight:normal;margin-bottom:4px}
-.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
-.stat{background:#26374e;border-radius:9px;text-align:center;padding:12px 5px}
-.stat strong{display:block;font-size:22px;color:#facc15}
-.stat span{font-size:11px;color:#a5b4c8}
-.bar{height:8px;background:#334155;border-radius:8px;overflow:hidden;margin-top:7px}
-.bar i{display:block;height:100%;background:#eab308}
-.item{padding:10px 0;border-bottom:1px solid #34445a}
-.item:last-child{border:0}
-.tag{display:inline-block;background:#334155;padding:5px 8px;border-radius:6px;margin:3px;font-size:12px}
-table{width:100%;border-collapse:collapse;font-size:12px}
-td,th{padding:9px 4px;text-align:center;border-bottom:1px solid #34445a}
-th{color:#facc15}
-.empty{color:#94a3b8;font-size:13px;padding:10px 0}
-</style>
-</head>
-<body>
-<div class="app">
-<h1>开奖记录分析助手</h1>
-<div class="sub">实时开奖 · 前三名分析 · 前七名分析 · 历史回测</div>
+:root{color-scheme:dark;--p:#151f30;--m:#9aa9bd;--l:#2b394e;--a:#55d6a4;--g:#ffce6b}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#101b2d,#080e18);color:#f4f7fb;font:15px system-ui,"Noto Sans SC",sans-serif}
+main{max-width:760px;margin:auto;padding:18px 14px 40px}.panel{background:var(--p);border:1px solid var(--l);border-radius:16px;padding:16px;margin:14px 0}
+.top,.row{display:flex;justify-content:space-between;align-items:center;gap:10px}.brand{font-size:21px;font-weight:800}
+.muted,.small{color:var(--m);font-size:13px;line-height:1.6}h2{font-size:16px;margin:0 0 12px}
+.hero{text-align:center;padding:20px}.pick{font-size:58px;font-weight:900;color:var(--g)}
+button{border:0;border-radius:10px;padding:11px 14px;background:var(--a);font-weight:700;color:#07150f}button:disabled{opacity:.5}
+.actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:12px}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.stat{background:#0e1726;border-radius:10px;padding:12px}
+.stat b{display:block;font-size:22px}.stat span{font-size:12px;color:var(--m)}
+table{border-collapse:collapse;width:100%;font-size:13px;white-space:nowrap}td,th{padding:8px 6px;border-bottom:1px solid var(--l);text-align:center}th{color:var(--m)}
+#status{white-space:pre-wrap;color:var(--m);font-size:12px;margin-top:10px}textarea{width:100%;min-height:110px;background:#0b1422;color:white;border:1px solid var(--l);border-radius:9px;padding:10px}
+details summary{cursor:pointer;font-weight:bold}.section-title{color:var(--a);font-weight:800;margin-bottom:8px}
+@media(min-width:600px){.grid{grid-template-columns:repeat(4,1fr)}}
+</style></head>
+<body><main>
+<div class="top"><div><div class="brand">Speedy10 开奖与号码分析</div><div class="muted">免费版 · 两套独立预测与统计</div></div><span class="muted">每区每期只推荐一个数字</span></div>
 
-<div class="card">
-<h2>功能页面</h2>
-<button id="tab3" class="active" onclick="showPage('three')">前三名分析</button>
-<button id="tab7" class="secondary" onclick="showPage('seven')">前七名分析</button>
-<button id="tabLog" class="secondary" onclick="showPage('log')">分析记录</button>
-</div>
+<section class="panel">
+  <div class="row"><h2>开奖记录</h2><span id="count" class="small">等待数据</span></div>
+  <div class="actions"><button id="refresh">刷新开奖记录</button><button id="open">打开开奖网页</button></div>
+  <div id="status">正在准备读取…</div>
+</section>
 
-<div class="card">
-<h2>最新开奖记录</h2>
-<div id="status" class="status">正在读取数据……</div>
-<div id="latest"></div>
-<button onclick="refreshAll()">立即刷新</button>
-<button class="secondary" onclick="window.open(SOURCE_URL,'_blank')">打开开奖网站</button>
-</div>
+<section class="panel hero">
+  <div class="section-title">预测区 A · 前三名</div>
+  <div class="muted">预测号码出现在第1至第3名任意位置即命中</div>
+  <div class="pick" id="pick3">—</div><div id="reason3" class="small">读取数据后生成预测</div>
+  <div class="grid" style="margin-top:14px">
+    <div class="stat"><span>已核对期数</span><b id="checked3">0</b></div>
+    <div class="stat"><span>命中次数</span><b id="wins3">0</b></div>
+    <div class="stat"><span>未命中次数</span><b id="losses3">0</b></div>
+    <div class="stat"><span>命中率</span><b id="rate3">0%</b></div>
+  </div>
+</section>
+<section class="panel">
+  <h2>前三名预测核对记录</h2>
+  <div style="overflow:auto"><table><thead><tr><th>预测基准期</th><th>预测号码</th><th>开奖期</th><th>结果</th></tr></thead><tbody id="checks3"></tbody></table></div>
+  <h2 style="margin-top:16px">前三名走势分析</h2><div id="analysis3" class="small">等待数据…</div>
+</section>
 
-<div id="threePage" class="page show">
-<div class="card">
-<h2>前三名历史统计</h2>
-<div class="muted">统计每期第一至第三名出现的数字，按历史出现次数排序。</div>
-<select id="period3" onchange="renderAnalysis('three')">
-<option value="10">最近10期</option>
-<option value="20" selected>最近20期</option>
-<option value="30">最近30期</option>
-<option value="50">最近50期</option>
-<option value="100">最近100期</option>
-</select>
-<div id="result3"></div>
-<button onclick="saveAnalysis('three')">保存本次分析</button>
-</div>
-<div class="card">
-<h2>前三名历史回测</h2>
-<div class="muted">使用过去记录计算历史高频数字，再检查之后实际开奖的前三名是否出现该数字。只用于回顾历史表现。</div>
-<div id="back3"></div>
-</div>
-</div>
+<section class="panel hero">
+  <div class="section-title">预测区 B · 前七名</div>
+  <div class="muted">预测号码出现在第1至第7名任意位置即命中</div>
+  <div class="pick" id="pick7">—</div><div id="reason7" class="small">读取数据后生成预测</div>
+  <div class="grid" style="margin-top:14px">
+    <div class="stat"><span>已核对期数</span><b id="checked7">0</b></div>
+    <div class="stat"><span>命中次数</span><b id="wins7">0</b></div>
+    <div class="stat"><span>未命中次数</span><b id="losses7">0</b></div>
+    <div class="stat"><span>命中率</span><b id="rate7">0%</b></div>
+  </div>
+</section>
+<section class="panel">
+  <h2>前七名预测核对记录</h2>
+  <div style="overflow:auto"><table><thead><tr><th>预测基准期</th><th>预测号码</th><th>开奖期</th><th>结果</th></tr></thead><tbody id="checks7"></tbody></table></div>
+  <h2 style="margin-top:16px">前七名走势分析</h2><div id="analysis7" class="small">等待数据…</div>
+</section>
 
-<div id="sevenPage" class="page">
-<div class="card">
-<h2>前七名历史统计</h2>
-<div class="muted">统计每期第一至第七名出现的数字，按历史出现次数排序。</div>
-<select id="period7" onchange="renderAnalysis('seven')">
-<option value="10">最近10期</option>
-<option value="20" selected>最近20期</option>
-<option value="30">最近30期</option>
-<option value="50">最近50期</option>
-<option value="100">最近100期</option>
-</select>
-<div id="result7"></div>
-<button onclick="saveAnalysis('seven')">保存本次分析</button>
-</div>
-<div class="card">
-<h2>前七名历史回测</h2>
-<div class="muted">使用过去记录计算历史高频数字，再检查之后实际开奖的前七名是否出现该数字。只用于回顾历史表现。</div>
-<div id="back7"></div>
-</div>
-</div>
-
-<div id="logPage" class="page">
-<div class="card">
-<h2>分析记录</h2>
-<div id="logSummary" class="muted"></div>
-<div id="logs"></div>
-<button class="secondary" onclick="exportLogs()">导出分析记录</button>
-<button class="danger" onclick="clearLogs()">清空分析记录</button>
-</div>
-</div>
-
-<div class="card">
-<h2>历史开奖记录</h2>
-<div id="historyStatus" class="muted">等待读取……</div>
-<div id="history"></div>
-</div>
-
-<div class="card">
-<h2>数据备份</h2>
-<button class="secondary" onclick="exportData()">导出全部数据</button>
-<button class="secondary" onclick="document.getElementById('importFile').click()">导入数据</button>
-<input id="importFile" type="file" accept=".json" hidden onchange="importData(event)">
-<div class="muted">数据保存在当前浏览器。更换设备前请导出备份。</div>
-</div>
-</div>
-
+<section class="panel">
+  <h2>最新完整开奖结果（第1至第10名）</h2><div id="latest" class="small">等待数据…</div>
+</section>
+<section class="panel">
+  <div class="row"><h2>历史完整开奖记录</h2><span id="historyCount" class="small"></span></div>
+  <div style="overflow:auto"><table><thead id="thead"></thead><tbody id="results"></tbody></table></div>
+</section>
+<section class="panel"><details><summary>自动读取失败？手动导入开奖记录</summary>
+<p class="small">每行格式：期号,第一名,第二名,…,第十名。用英文逗号分隔。</p>
+<textarea id="manual" placeholder="34226664,7,2,1,10,9,4,6,8,5,3"></textarea>
+<div class="actions"><button id="import">导入数据</button></div></details></section>
+<p class="small">统计说明：两套预测各自独立计算、独立保存命中记录。频率、遗漏和走势仅是历史统计参考，随机开奖结果无法可靠预测，不保证命中，请理性看待。</p>
+</main>
 <script>
-const SOURCE_URL='https://m.1689687.com/html/public/home.html';
-const API='https://speedy10-data.lin-bei666ye.workers.dev/';
-const DATA_KEY='draw_analysis_records_v1';
-const LOG_KEY='draw_analysis_logs_v1';
+const SOURCE='https://m.1689687.com/html/jisusaiche/index.html',STORE='speedy10-two-zone-v2';
+let draws=[],history3=[],history7=[],pending3=null,pending7=null;
+const $=id=>document.getElementById(id);
 
-let records=load(DATA_KEY,[]);
-let logs=load(LOG_KEY,[]);
-let refreshing=false;
-
-function load(key,fallback){
+function load(){
  try{
-  const v=JSON.parse(localStorage.getItem(key));
-  return v??fallback;
- }catch(e){return fallback}
-}
-function save(){
- localStorage.setItem(DATA_KEY,JSON.stringify(records));
- localStorage.setItem(LOG_KEY,JSON.stringify(logs));
-}
-function esc(v){
- return String(v).replace(/[&<>"']/g,c=>({
- '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
- }[c]));
-}
-function normalize(obj){
- if(!obj||typeof obj!=='object')return null;
- const issue=obj.preDrawIssue??obj.issue??obj.drawIssue??obj.period??obj.expect;
- const code=obj.preDrawCode??obj.drawCode??obj.openCode??obj.code??obj.numbers;
- if(issue===undefined||code===undefined)return null;
- const nums=Array.isArray(code)?code.map(Number):String(code).split(/[,，\s-]+/).map(Number);
- if(nums.length!==10||nums.some(n=>!Number.isInteger(n)||n<1||n>10))return null;
- return {issue:String(issue),numbers:nums};
-}
-function findRecords(value,out=[],depth=0){
- if(depth>10||value==null)return out;
- if(Array.isArray(value)){
-  value.forEach(v=>findRecords(v,out,depth+1));
- }else if(typeof value==='object'){
-  const r=normalize(value);
-  if(r)out.push(r);
-  Object.values(value).forEach(v=>{
-   if(v&&typeof v==='object')findRecords(v,out,depth+1);
-  });
- }
- return out;
-}
-function findCurrent(value,depth=0){
- if(depth>10||!value||typeof value!=='object')return null;
- if(!Array.isArray(value)&&value.preDrawIssue!==undefined&&value.preDrawCode)return value;
- for(const v of Object.values(value)){
-  const r=findCurrent(v,depth+1);
-  if(r)return r;
- }
- return null;
-}
-function addRecord(r){
- const i=records.findIndex(x=>String(x.issue)===String(r.issue));
- if(i>=0)records[i]=r;
- else records.push(r);
-}
-function sortRecords(){
- records.sort((a,b)=>String(b.issue).localeCompare(String(a.issue),undefined,{numeric:true}));
- records=records.slice(0,1000);
-}
-async function getJSON(url){
- const res=await fetch(url,{cache:'no-store'});
- if(!res.ok)throw new Error('HTTP '+res.status);
- return res.json();
-}
-async function refreshAll(){
- if(refreshing)return;
- refreshing=true;
- const status=document.getElementById('status');
- status.textContent='正在刷新开奖数据……';
- try{
-  const data=await getJSON(API+'?action=current');
-  const raw=findCurrent(data);
-  if(!raw)throw new Error('接口没有返回可识别的最新开奖数据');
-  const current=normalize(raw);
-  if(!current)throw new Error('最新数据格式不正确');
-  addRecord(current);
-  try{
-   const date=raw.preDrawDate||new Date().toISOString().slice(0,10);
-   const hist=await getJSON(API+'?action=history&date='+encodeURIComponent(date));
-   const list=findRecords(hist);
-   list.forEach(addRecord);
-   document.getElementById('historyStatus').textContent='历史接口读取到 '+list.length+' 条记录。';
-  }catch(e){
-   document.getElementById('historyStatus').textContent='历史接口暂不可用，显示本机已有记录。';
+  let raw=localStorage.getItem(STORE);
+  if(!raw){
+   let old=JSON.parse(localStorage.getItem('speedy10-free-v1')||'{}');
+   draws=old.draws||[];history3=old.history||[];pending3=old.pending||null;
+   history7=[];pending7=null;return;
   }
-  sortRecords();save();renderAll();
-  status.innerHTML='<span style="color:#4ade80">连接成功</span> · 最新期号：'+esc(current.issue);
- }catch(e){
-  status.textContent='读取失败：'+e.message+'。请检查 Worker 接口是否正常。';
- }finally{refreshing=false}
+  let x=JSON.parse(raw);
+  draws=x.draws||[];history3=x.history3||[];history7=x.history7||[];
+  pending3=x.pending3||null;pending7=x.pending7||null;
+ }catch(e){}
 }
-function showPage(name){
- ['three','seven','log'].forEach(p=>{
-  document.getElementById(p+'Page').classList.toggle('show',p===name);
-  const b=document.getElementById(p==='three'?'tab3':p==='seven'?'tab7':'tabLog');
-  b.className=p===name?'active':'secondary';
- });
+
+function save(){
+ try{localStorage.setItem(STORE,JSON.stringify({draws,history3,history7,pending3,pending7}))}catch(e){}
 }
-function renderLatest(){
- const r=records[0];
- document.getElementById('latest').innerHTML=r?
-  '<div class="muted">期号：'+esc(r.issue)+'</div><div class="numbers">'+
-  r.numbers.map((n,i)=>'<div class="num '+(i===0?'first':'')+'"><small>第'+(i+1)+'名</small>'+n+'</div>').join('')+
-  '</div>':'<div class="empty">暂无记录</div>';
+
+function norm(a){
+ let seen=new Set;
+ return a.filter(x=>x&&x.issue&&x.numbers?.length===10&&x.numbers.every(n=>Number.isInteger(n)&&n>=1&&n<=10))
+ .filter(x=>{let k=String(x.issue);if(seen.has(k))return false;seen.add(k);return true})
+ .sort((a,b)=>Number(b.issue)-Number(a.issue));
 }
-function countNumbers(list,size){
- const counts=Array(11).fill(0);
- list.forEach(r=>{
-  r.numbers.slice(0,size).forEach(n=>counts[n]++);
- });
- return counts;
-}
-function ranking(counts){
- return Array.from({length:10},(_,i)=>i+1).sort((a,b)=>counts[b]-counts[a]||a-b);
-}
-function renderAnalysis(type){
- const size=type==='three'?3:7;
- const period=Number(document.getElementById(type==='three'?'period3':'period7').value);
- const list=records.slice(0,period);
- const counts=countNumbers(list,size);
- const total=list.length*size;
- const sorted=ranking(counts);
- const target=document.getElementById(type==='three'?'result3':'result7');
- target.innerHTML=
-  '<div class="muted">统计期数：'+list.length+'期；总名次样本：'+total+'个。</div>'+
-  '<div class="grid">'+sorted.map((n,i)=>
-   '<div class="stat"><strong>'+n+'</strong><span>第'+(i+1)+'位 · '+counts[n]+'次</span>'+
-   '<div class="bar"><i style="width:'+(total?counts[n]/total*100:0)+'%"></i></div>'+
-   '<span>历史占比：'+(total?(counts[n]/total*100).toFixed(1):'0.0')+'%</span></div>'
-  ).join('')+'</div>';
- renderBacktest(type);
-}
-function backtest(size){
- const minTrain=10;
- const tests=[];
- // records 按最新到最旧排列。每个测试期只使用比它更早的记录。
- for(let i=records.length-1-minTrain;i>=0;i--){
-  const past=records.slice(i+1,i+1+minTrain);
-  if(past.length<minTrain)continue;
-  const counts=countNumbers(past,size);
-  const ranked=ranking(counts);
-  const chosen=ranked[0];
-  const actual=records[i].numbers.slice(0,size);
-  tests.push({issue:records[i].issue,chosen,hit:actual.includes(chosen)});
+
+function parseText(src){
+ let out=[];
+ try{
+  let doc=new DOMParser().parseFromString(src,'text/html');
+  doc.querySelectorAll('tr').forEach(tr=>{
+   let c=[...tr.querySelectorAll('td,th')].map(x=>x.textContent.trim());
+   let ix=c.find(x=>/^\d{7,12}$/.test(x));
+   let n=c.filter(x=>/^(10|[1-9])$/.test(x)).map(Number);
+   if(ix&&n.length>=10)out.push({issue:ix,numbers:n.slice(0,10)});
+  });
+ }catch(e){}
+ let lines=src.replace(/<br\s*\/?>/gi,'\n').replace(/<\/t[dh]>/gi,' | ').replace(/<\/tr>/gi,'\n').replace(/<[^>]*>/g,' ').split(/[\r\n]+/);
+ for(let line of lines){
+  let ix=(line.match(/\b\d{7,12}\b/)||[])[0];if(!ix)continue;
+  let after=line.slice(line.indexOf(ix)+ix.length);
+  let ns=(after.match(/10|[1-9]/g)||[]).map(Number);
+  if(ns.length>=10)out.push({issue:ix,numbers:ns.slice(0,10)});
  }
- return tests;
+ let flat=src.replace(/<[^>]*>/g,' ').replace(/[|,，;；]/g,' ').replace(/\s+/g,' ');
+ let re=/(\d{7,12})\s+((?:(?:10|[1-9])\s+){9}(?:10|[1-9]))/g,m;
+ while((m=re.exec(flat)))out.push({issue:m[1],numbers:m[2].trim().split(/\s+/).map(Number)});
+ return norm(out);
 }
-function renderBacktest(type){
- const size=type==='three'?3:7;
- const tests=backtest(size);
- const hits=tests.filter(x=>x.hit).length;
- const rate=tests.length?hits/tests.length*100:0;
- document.getElementById(type==='three'?'back3':'back7').innerHTML=
-  '<div class="grid">'+
-  '<div class="stat"><strong>'+tests.length+'</strong><span>历史测试期数</span></div>'+
-  '<div class="stat"><strong>'+hits+'</strong><span>历史出现次数</span></div>'+
-  '<div class="stat"><strong>'+rate.toFixed(1)+'%</strong><span>历史回测出现比例</span></div>'+
-  '<div class="stat"><strong>'+(tests.length-hits)+'</strong><span>历史未出现次数</span></div>'+
-  '</div><div class="muted">回测使用过去10期统计出一个历史频次最高数字，再检查测试期实际结果。该比例仅描述历史测试，不是下一期概率。</div>';
-}
-function saveAnalysis(type){
- const size=type==='three'?3:7;
- const period=Number(document.getElementById(type==='three'?'period3':'period7').value);
- const list=records.slice(0,period);
- const counts=countNumbers(list,size);
- const ranked=ranking(counts);
- const entry={
-  type:type==='three'?'前三名':'前七名',
-  time:new Date().toLocaleString(),
-  sample:list.length,
-  counts:counts,
-  top:ranked[0],
-  backtest:backtest(size).length
- };
- logs.unshift(entry);
- logs=logs.slice(0,500);
- save();
- renderLogs();
- alert('本次分析记录已保存。');
-}
-function renderLogs(){
- document.getElementById('logSummary').textContent='累计保存 '+logs.length+' 次分析记录。';
- document.getElementById('logs').innerHTML=logs.map((x,i)=>
-  '<div class="item"><strong>'+esc(x.type)+'</strong>'+
-  '<div class="muted">'+esc(x.time)+' · 样本 '+x.sample+' 期</div>'+
-  '<div class="muted">历史频次最高数字：'+x.top+' · 回测测试期数：'+x.backtest+'</div></div>'
- ).join('')||'<div class="empty">还没有保存分析记录</div>';
-}
-function renderHistory(){
- document.getElementById('history').innerHTML=records.slice(0,30).map(r=>
-  '<div class="item"><div class="muted">期号：'+esc(r.issue)+'</div>'+
-  '<strong>'+r.numbers.join(' - ')+'</strong></div>'
- ).join('')||'<div class="empty">暂无历史记录</div>';
-}
-function renderAll(){
- renderLatest();
- renderAnalysis('three');
- renderAnalysis('seven');
- renderLogs();
- renderHistory();
-}
-function exportFile(data,name){
- const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
- const url=URL.createObjectURL(blob);
- const a=document.createElement('a');
- a.href=url;a.download=name;a.click();
- URL.revokeObjectURL(url);
-}
-function exportData(){
- exportFile({records,logs},'开奖记录完整备份.json');
-}
-function exportLogs(){
- exportFile({logs},'分析记录备份.json');
-}
-function importData(event){
- const file=event.target.files[0];
- if(!file)return;
- const reader=new FileReader();
- reader.onload=()=>{
+
+async function getDraws(){
+ let errs=[];
+ for(let u of [
+  'https://r.jina.ai/http://m.1689687.com/html/jisusaiche/index.html',
+  'https://r.jina.ai/https://m.1689687.com/html/jisusaiche/index.html'
+ ]){
   try{
-   const data=JSON.parse(reader.result);
-   if(!Array.isArray(data.records))throw new Error('备份中没有开奖记录');
-   records=data.records.filter(x=>normalize({
-    issue:x.issue,numbers:x.numbers
-   }));
-   if(Array.isArray(data.logs))logs=data.logs;
-   sortRecords();save();renderAll();
-   alert('导入成功');
-  }catch(e){alert('导入失败：'+e.message)}
-  event.target.value='';
- };
- reader.readAsText(file);
+   let r=await fetch(u,{cache:'no-store'});
+   if(!r.ok)throw Error('HTTP '+r.status);
+   let t=await r.text(),d=parseText(t);
+   if(d.length)return d;
+   errs.push('已连接代理，但未识别到十个号码');
+  }catch(e){errs.push(e.message)}
+ }
+ throw Error(errs.join('；'));
 }
-function clearLogs(){
- if(!confirm('确定清空所有分析记录吗？'))return;
- logs=[];save();renderLogs();
+
+function scores(data,k){
+ let rows=data.map(d=>d.numbers.slice(0,k)),last={};
+ for(let n=1;n<=10;n++){
+  last[n]=999;
+  for(let i=0;i<rows.length;i++)if(rows[i].includes(n)){last[n]=i;break}
+ }
+ let recent=Array(11).fill(0),prior=Array(11).fill(0);
+ rows.slice(0,10).forEach(r=>r.forEach(n=>recent[n]++));
+ rows.slice(10,20).forEach(r=>r.forEach(n=>prior[n]++));
+ return Array.from({length:10},(_,i)=>{
+  let n=i+1;
+  let f20=rows.slice(0,20).flat().filter(x=>x===n).length;
+  let f50=rows.slice(0,50).flat().filter(x=>x===n).length;
+  let omit=Math.min(last[n],30),trend=recent[n]-prior[n];
+  return{n,f20,f50,omit,trend,score:f20*2+f50*.35+Math.min(omit,12)*.35+trend*.8};
+ }).sort((a,b)=>b.score-a.score||a.n-b.n);
 }
-renderAll();
-refreshAll();
-setInterval(refreshAll,30000);
+
+function settle(k){
+ let p=k===3?pending3:pending7,h=k===3?history3:history7;
+ if(!p||h.some(x=>x.base===p.base))return;
+ let next=draws.filter(d=>Number(d.issue)>Number(p.base)).sort((a,b)=>Number(a.issue)-Number(b.issue))[0];
+ if(next){
+  h.unshift({base:p.base,n:p.n,issue:next.issue,hit:next.numbers.slice(0,k).includes(p.n)});
+  if(k===3)pending3=null;else pending7=null;
+ }
+}
+
+function predict(k){
+ if(!draws.length)return;
+ let b=scores(draws,k)[0];
+ let p={base:draws[0].issue,n:b.n,reason:`近20期出现${b.f20}次，近50期${b.f50}次，遗漏${b.omit}期，走势${b.trend>=0?'+':''}${b.trend}`};
+ if(k===3)pending3=p;else pending7=p;
+}
+
+function renderMode(k){
+ let h=k===3?history3:history7,p=k===3?pending3:pending7,s=scores(draws,k);
+ $('pick'+k).textContent=p?.n??'—';
+ $('reason'+k).textContent=p?.reason||'等待预测';
+ let wins=h.filter(x=>x.hit).length;
+ $('checked'+k).textContent=h.length;
+ $('wins'+k).textContent=wins;
+ $('losses'+k).textContent=h.length-wins;
+ $('rate'+k).textContent=h.length?(wins/h.length*100).toFixed(1)+'%':'0%';
+ $('checks'+k).innerHTML=h.slice(0,50).map(x=>
+  `<tr><td>${x.base}</td><td>${x.n}</td><td>${x.issue||'—'}</td><td>${x.issue?(x.hit?'命中':'未命中'):'待核对'}</td></tr>`
+ ).join('')||'<tr><td colspan="4">暂无记录</td></tr>';
+ $('analysis'+k).innerHTML=`统计最近最多100期的前${k}名：`+
+ s.map(x=>`<p>号码${x.n}：近20期${x.f20}次，近50期${x.f50}次，遗漏${x.omit}期，走势${x.trend>=0?'+':''}${x.trend}</p>`).join('');
+}
+
+function render(){
+ $('count').textContent=`已读取 ${draws.length} 期`;
+ $('historyCount').textContent=`共 ${draws.length} 期`;
+ $('thead').innerHTML='<tr><th>期号</th>'+
+ Array.from({length:10},(_,i)=>`<th>第${i+1}名</th>`).join('');
+ if(draws.length){
+  let d=draws[0];
+  $('latest').innerHTML=`最新期号：<b>${d.issue}</b><div class="grid">${
+   d.numbers.map((n,i)=>`<div class="stat" style="${i===0?'border:2px solid var(--g);color:var(--g)':''}"><span>${i===0?'第一名 ★':'第'+(i+1)+'名'}</span><b>${n}</b></div>`).join('')
+  }</div>`;
+  $('results').innerHTML=draws.slice(0,100).map(x=>
+   `<tr><td>${x.issue}</td>${x.numbers.map((n,i)=>`<td style="${i===0?'color:var(--g);font-weight:bold':''}">${n}</td>`).join('')}</tr>`
+  ).join('');
+ }
+ renderMode(3);renderMode(7);
+}
+
+async function refresh(){
+ $('refresh').disabled=true;
+ $('status').textContent='正在读取开奖网页…';
+ try{
+  let fresh=await getDraws();
+  draws=norm(fresh.concat(draws)).slice(0,300);
+  settle(3);settle(7);
+  if(!pending3)predict(3);
+  if(!pending7)predict(7);
+  save();render();
+  $('status').textContent=`刷新成功！最新期号${draws[0].issue}，读取${fresh.length}期。`;
+ }catch(e){
+  $('status').textContent='自动读取失败：'+e.message+'。可展开手动导入。';
+ }finally{$('refresh').disabled=false}
+}
+
+function importData(){
+ let arr=[];
+ for(let line of $('manual').value.trim().split(/\n+/)){
+  let p=line.split(/[\s,，|]+/).filter(Boolean);
+  if(p.length>=11&&/^\d{7,12}$/.test(p[0])){
+   let n=p.slice(1,11).map(Number);
+   if(n.every(x=>Number.isInteger(x)&&x>=1&&x<=10))arr.push({issue:p[0],numbers:n});
+  }
+ }
+ if(!arr.length){
+  $('status').textContent='格式不正确。请按期号加十个号码输入。';
+  return;
+ }
+ draws=norm(arr.concat(draws)).slice(0,300);
+ settle(3);settle(7);
+ if(!pending3)predict(3);
+ if(!pending7)predict(7);
+ save();render();
+ $('status').textContent=`导入成功：${arr.length}期。`;
+}
+
+$('refresh').onclick=refresh;
+$('open').onclick=()=>window.open(SOURCE,'_blank');
+$('import').onclick=importData;
+load();
+if(draws.length){
+ if(!pending3)predict(3);
+ if(!pending7)predict(7);
+}
+render();
+refresh();
 </script>
 </body>
 </html>
