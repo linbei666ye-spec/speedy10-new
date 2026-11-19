@@ -2,1047 +2,1059 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#101827">
-<title>极速赛车双系统预测</title>
-
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Speedy10预测</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#101827;color:#edf3ff;font-family:Arial,"Microsoft YaHei",sans-serif;padding:13px}
-.app{max-width:650px;margin:auto}
-h1{text-align:center;font-size:24px;margin:14px 0 5px}
-.subtitle{text-align:center;color:#94a8c5;font-size:12px;margin-bottom:18px}
-.card{background:#1b293e;border:1px solid #34445c;border-radius:14px;padding:15px;margin-bottom:13px}
-h2{font-size:16px;margin:0 0 13px;color:#c1d8ff}
-h3{font-size:14px;margin:14px 0 8px}
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.muted{font-size:12px;color:#98aac4}
-.status{font-size:12px;color:#f3c66e;margin-top:9px;line-height:1.6}
-button,select{border:0;border-radius:9px;padding:11px 13px;font-size:14px}
-button{background:#3278e8;color:white;font-weight:bold;cursor:pointer}
-button.secondary{background:#394b64}
-button.danger{background:#a53c48}
-button:disabled{opacity:.5}
-select,input,textarea{background:#101827;color:#fff;border:1px solid #435674;border-radius:8px;padding:10px;font-size:14px}
-select{min-width:110px}
-input,textarea{width:100%;margin:6px 0}
-textarea{min-height:110px}
-.numbers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:13px}
-.num{background:#2b3d57;border-radius:9px;text-align:center;padding:11px 2px;font-size:21px;font-weight:bold}
-.num.first{background:#b63e49}
-.num small{display:block;font-size:10px;font-weight:normal;margin-top:5px}
-
-/* 最近20期：10个号码横向排列 */
-.recent-item{
- border-bottom:1px solid #34465f;
- padding:11px 0 13px;
+:root {
+  --bg:#f3f5f9;
+  --card:#ffffff;
+  --text:#172033;
+  --muted:#758096;
+  --blue:#2563eb;
+  --green:#16a34a;
+  --red:#dc2626;
+  --line:#e5e9f0;
 }
-.recent-item:last-child{border-bottom:0}
-.recent-time{
- color:#c1d8ff;
- font-size:13px;
- font-weight:bold;
- margin-bottom:8px;
+* { box-sizing:border-box; }
+body {
+  margin:0;
+  padding:14px;
+  background:var(--bg);
+  color:var(--text);
+  font-family:Arial,"Microsoft YaHei",sans-serif;
 }
-.recent-issue{
- color:#98aac4;
- font-size:11px;
- margin-left:5px;
- font-weight:normal;
+.container { max-width:760px; margin:auto; }
+header { padding:12px 2px 16px; }
+h1 { font-size:24px; margin:0 0 6px; }
+.subtitle { color:var(--muted); font-size:13px; }
+.card {
+  background:var(--card);
+  border-radius:14px;
+  padding:16px;
+  margin-bottom:13px;
+  box-shadow:0 2px 10px rgba(20,35,60,.05);
 }
-.recent-numbers{
- display:grid;
- grid-template-columns:repeat(10,minmax(0,1fr));
- gap:3px;
- width:100%;
+.card h2 { font-size:17px; margin:0 0 13px; }
+.row { display:flex; gap:9px; flex-wrap:wrap; align-items:center; }
+button,select,input,textarea {
+  font:inherit;
+  border-radius:9px;
+  border:1px solid var(--line);
+  padding:10px 12px;
+  background:white;
+  color:var(--text);
 }
-.recent-num{
- background:#2b3d57;
- border-radius:5px;
- text-align:center;
- padding:9px 0;
- font-size:13px;
- font-weight:bold;
- min-width:0;
+button {
+  background:var(--blue);
+  color:white;
+  border:0;
+  font-weight:600;
+  cursor:pointer;
 }
-.recent-num.first{background:#b63e49;color:white}
-
-.predict-number{text-align:center;font-size:65px;font-weight:bold;color:#ffd16d;margin:7px 0}
-.predict-label{text-align:center;color:#b5c6df;font-size:12px}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin:12px 0}
-.stat{background:#283a54;padding:11px 4px;border-radius:9px;text-align:center}
-.stat strong{display:block;font-size:21px;margin-bottom:5px}
-.stat span{font-size:10px;color:#a9bbd5}
-.actions{display:flex;gap:8px}
-.actions button{flex:1}
-.record{border-bottom:1px solid #34465f;padding:10px 0;font-size:13px;line-height:1.8}
-.record:last-child{border:0}
-.hit{color:#42e09b;font-weight:bold}
-.miss{color:#ff7777;font-weight:bold}
-.pending{color:#ffce69}
-.tag{background:#344964;padding:4px 8px;border-radius:6px;font-size:11px}
-.systemA{border-top:3px solid #3f9bff}
-.systemB{border-top:3px solid #a77aff}
-.footer{text-align:center;color:#7489a6;font-size:11px;padding:15px}
+button.secondary { background:#e8eefc; color:#1d4ed8; }
+button.danger { background:#fee2e2; color:#b91c1c; }
+button:disabled { opacity:.5; }
+select { flex:1; min-width:120px; }
+.big-number {
+  font-size:48px;
+  line-height:1.2;
+  font-weight:800;
+  color:var(--blue);
+  text-align:center;
+  padding:8px;
+}
+.system-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.system-card {
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:13px 8px;
+  min-width:0;
+}
+.system-card h3 { font-size:15px; text-align:center; margin:0; }
+.system-card .desc { font-size:12px; color:var(--muted); text-align:center; }
+.stat { font-size:13px; color:var(--muted); text-align:center; }
+.status { font-size:13px; padding:8px 0 0; text-align:center; }
+.hit { color:var(--green); font-weight:bold; }
+.miss { color:var(--red); font-weight:bold; }
+.muted { color:var(--muted); font-size:12px; }
+.notice {
+  background:#eff6ff;
+  border-radius:10px;
+  padding:11px;
+  color:#1e40af;
+  font-size:13px;
+  line-height:1.6;
+}
+.warning {
+  background:#fff7ed;
+  color:#9a3412;
+  border-radius:10px;
+  padding:11px;
+  font-size:12px;
+  line-height:1.6;
+}
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { padding:9px 5px; border-bottom:1px solid var(--line); text-align:center; }
+th { color:var(--muted); font-weight:600; }
+.table-wrap { overflow-x:auto; }
+.number-list { display:flex; flex-wrap:wrap; gap:6px; }
+.number-chip {
+  border-radius:8px;
+  background:#eef2ff;
+  padding:7px 9px;
+  font-weight:bold;
+  min-width:30px;
+  text-align:center;
+}
+.number-chip.first { background:#fef3c7; color:#92400e; }
+input[type="text"] { width:100%; }
+textarea { width:100%; min-height:90px; }
+.section-note { font-size:12px; color:var(--muted); line-height:1.6; }
+@media(max-width:420px) {
+  body { padding:9px; }
+  .card { padding:13px; }
+  .system-grid { gap:8px; }
+  .big-number { font-size:42px; }
+}
 </style>
 </head>
-
 <body>
-<div class="app">
+<div class="container">
+  <header>
+    <h1>Speedy10 预测系统</h1>
+    <div class="subtitle">历史数据分析 · 双系统预测 · 自动记录命中结果</div>
+  </header>
 
-<h1>🏎 极速赛车智能预测</h1>
-<div class="subtitle">双独立预测系统 · 十名综合分析 · 自动开奖核对</div>
+  <div class="card">
+    <h2>最新开奖</h2>
+    <div id="latestIssue" class="muted">正在读取开奖数据……</div>
+    <div id="latestNumbers" class="number-list" style="margin-top:10px"></div>
+    <div class="row" style="margin-top:13px">
+      <button onclick="refreshAll()">刷新数据</button>
+      <button class="secondary" onclick="createPrediction()">立即预测下一期</button>
+    </div>
+    <div id="updateStatus" class="muted" style="margin-top:9px">等待连接</div>
+  </div>
 
-<!-- 最新开奖 -->
-<div class="card">
- <div class="row">
-  <h2>最新开奖结果</h2>
-  <span class="tag" id="connection">等待连接</span>
- </div>
+  <div class="card">
+    <h2>下一期预测</h2>
+    <div class="system-grid">
+      <div class="system-card">
+        <h3>系统 A：前三名</h3>
+        <div class="desc">预测数字出现在第1～3名即命中</div>
+        <div id="predictionA" class="big-number">—</div>
+        <div id="detailA" class="stat">等待预测</div>
+        <div id="resultA" class="status">尚未开奖</div>
+      </div>
+      <div class="system-card">
+        <h3>系统 B：前七名</h3>
+        <div class="desc">预测数字出现在第1～7名即命中</div>
+        <div id="predictionB" class="big-number">—</div>
+        <div id="detailB" class="stat">等待预测</div>
+        <div id="resultB" class="status">尚未开奖</div>
+      </div>
+    </div>
+    <div class="section-note" style="margin-top:12px">
+      每个系统每期只推荐一个数字。系统A和系统B分别计算，不会推荐一组号码。
+    </div>
+  </div>
 
- <div class="muted">当前期号：<span id="issue">--</span></div>
- <div class="muted" style="margin-top:5px">开奖时间：<span id="drawTime">--</span></div>
+  <div class="card">
+    <h2>新版算法设置</h2>
+    <div class="row">
+      <label for="analysisRange">分析历史期数</label>
+      <select id="analysisRange" onchange="renderAll()">
+        <option value="30">最近30期</option>
+        <option value="50" selected>最近50期</option>
+        <option value="100">最近100期</option>
+        <option value="200">最近200期</option>
+        <option value="500">最近500期</option>
+      </select>
+    </div>
+    <div class="notice" style="margin-top:12px">
+      新算法综合最近10期、30期和100期走势，同时分析全部10个名次、数字频率、遗漏与近期变化。历史不足时会自动使用现有数据。
+    </div>
+  </div>
 
- <div class="numbers" id="latestNumbers">
-  <div class="muted">等待开奖数据</div>
- </div>
+  <div class="card">
+    <h2>算法滚动回测</h2>
+    <div id="backtestSummary" class="muted">数据读取后自动计算</div>
+    <div class="table-wrap" style="margin-top:10px">
+      <table>
+        <thead><tr><th>系统</th><th>回测期数</th><th>命中</th><th>命中率</th><th>随机基线</th></tr></thead>
+        <tbody id="backtestTable">
+          <tr><td colspan="5">等待数据</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="section-note" style="margin-top:9px">
+      回测每一期只使用该期开奖之前的数据，避免把未来开奖结果提前用于预测。
+    </div>
+  </div>
 
- <div class="status" id="updateStatus">等待连接数据代理</div>
- <button onclick="refreshAll()" style="width:100%;margin-top:12px">🔄 刷新最新开奖</button>
-</div>
+  <div class="card">
+    <h2>预测历史记录</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>期号</th><th>A预测</th><th>A结果</th><th>B预测</th><th>B结果</th></tr></thead>
+        <tbody id="predictionHistory">
+          <tr><td colspan="5">暂无记录</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-<!-- 系统A -->
-<div class="card systemA">
- <div class="row">
-  <h2>🎯 系统 A：前三名预测</h2>
-  <span class="tag">独立系统</span>
- </div>
+  <div class="card">
+    <h2>最近开奖记录</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>期号</th><th>第1名</th><th>完整10名</th></tr></thead>
+        <tbody id="drawHistory">
+          <tr><td colspan="3">正在读取</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
- <div class="muted">推荐数字出现在第一、第二或第三名，判定命中。</div>
+  <div class="card">
+    <h2>数据管理</h2>
+    <div class="row">
+      <button class="secondary" onclick="exportData()">导出记录</button>
+      <button class="secondary" onclick="document.getElementById('importFile').click()">导入记录</button>
+      <button class="danger" onclick="clearPredictions()">清空预测记录</button>
+    </div>
+    <input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importData(event)">
+    <p class="section-note">预测记录保存在当前浏览器中。清除浏览器数据或更换手机可能导致本地记录丢失，建议定期导出备份。</p>
+  </div>
 
- <h3>历史分析范围</h3>
- <select id="rangeA" onchange="updateSystem('A')">
-  <option value="10">最近10期</option>
-  <option value="20">最近20期</option>
-  <option value="30" selected>最近30期</option>
-  <option value="40">最近40期</option>
-  <option value="50">最近50期</option>
- </select>
-
- <div class="predict-number" id="numberA">--</div>
- <div class="predict-label">下一期前三名推荐数字</div>
- <div class="status" id="reasonA" style="text-align:center">等待历史数据</div>
-
- <div class="stats">
-  <div class="stat"><strong id="totalA">0</strong><span>预测期数</span></div>
-  <div class="stat"><strong id="hitA" style="color:#42e09b">0</strong><span>命中次数</span></div>
-  <div class="stat"><strong id="rateA">0%</strong><span>命中率</span></div>
- </div>
-
- <h3>前三名预测历史</h3>
- <div id="historyA" class="muted">暂无记录</div>
-</div>
-
-<!-- 系统B -->
-<div class="card systemB">
- <div class="row">
-  <h2>🎯 系统 B：前七名预测</h2>
-  <span class="tag">独立系统</span>
- </div>
-
- <div class="muted">推荐数字出现在第一至第七名，判定命中。</div>
-
- <h3>历史分析范围</h3>
- <select id="rangeB" onchange="updateSystem('B')">
-  <option value="10">最近10期</option>
-  <option value="20">最近20期</option>
-  <option value="30" selected>最近30期</option>
-  <option value="40">最近40期</option>
-  <option value="50">最近50期</option>
- </select>
-
- <div class="predict-number" id="numberB">--</div>
- <div class="predict-label">下一期前七名推荐数字</div>
- <div class="status" id="reasonB" style="text-align:center">等待历史数据</div>
-
- <div class="stats">
-  <div class="stat"><strong id="totalB">0</strong><span>预测期数</span></div>
-  <div class="stat"><strong id="hitB" style="color:#42e09b">0</strong><span>命中次数</span></div>
-  <div class="stat"><strong id="rateB">0%</strong><span>命中率</span></div>
- </div>
-
- <h3>前七名预测历史</h3>
- <div id="historyB" class="muted">暂无记录</div>
-</div>
-
-<!-- 历史统计 -->
-<div class="card">
- <h2>📊 历史开奖数据</h2>
-
- <div class="stats">
-  <div class="stat"><strong id="historyCount">0</strong><span>已保存期数</span></div>
-  <div class="stat"><strong id="topA">--</strong><span>前三名系统首选</span></div>
-  <div class="stat"><strong id="topB">--</strong><span>前七名系统首选</span></div>
- </div>
-
- <div class="muted">所有数字1至10的全部位置都会纳入综合分析。</div>
- <div class="status" id="historyStatus">等待读取历史数据</div>
-
- <button onclick="loadHistory()" class="secondary" style="width:100%;margin-top:12px">
-  重新读取历史数据
- </button>
-</div>
-
-<!-- 最近20期历史 -->
-<div class="card">
- <div class="row">
-  <h2>📜 最近20期历史开奖记录</h2>
-  <span class="tag" id="recentCount">0期</span>
- </div>
- <div class="status" id="recentStatus">等待历史数据同步</div>
- <div id="recentHistory">
-  <div class="muted">等待开奖记录...</div>
- </div>
-</div>
-
-<!-- 手动导入 -->
-<div class="card">
- <h2>📥 手动导入历史开奖记录</h2>
- <div class="muted">每行一期开奖结果，支持期号加10个号码，也支持直接输入10个号码。</div>
-
- <textarea id="manualData" placeholder="34230485 09-02-07-10-06-04-05-08-01-03
-34230484 01-03-05-02-09-06-08-10-04-07"></textarea>
-
- <button onclick="importManual()" style="width:100%">导入开奖记录</button>
-</div>
-
-<!-- 数据管理 -->
-<div class="card">
- <h2>⚙️ 数据管理</h2>
- <div class="actions">
-  <button class="secondary" onclick="exportData()">导出数据</button>
-  <button class="danger" onclick="clearAll()">清空全部数据</button>
- </div>
- <div class="status">数据保存在当前手机浏览器中。更换设备前请先导出备份。</div>
-</div>
-
-<div class="footer">极速赛车双系统预测 · 仅供历史数据统计研究，不能保证未来开奖结果</div>
-
+  <div class="card">
+    <div class="warning">
+      提醒：历史开奖数据不能保证预测未来结果。若开奖过程是随机的，频率、遗漏和走势并不代表某个数字下一期一定更容易出现。回测只用于检验历史表现，不代表未来收益。
+    </div>
+  </div>
 </div>
 
 <script>
 "use strict";
 
-/* 数据代理地址 */
-const API="https://speedy10-data.lin-bei666ye.workers.dev/";
+const API_BASE = "https://speedy10-data.lin-bei666ye.workers.dev/";
+const HISTORY_KEY = "speedy10_double_history_v1";
+const PRED_A_KEY = "speedy10_double_predA_v1";
+const PRED_B_KEY = "speedy10_double_predB_v1";
 
-const KEYS={
- history:"speedy10_double_history_v1",
- predA:"speedy10_double_predA_v1",
- predB:"speedy10_double_predB_v1"
-};
+let history = [];
+let predictionsA = [];
+let predictionsB = [];
+let current = { issue: "", numbers: [] };
+let isRefreshing = false;
 
-let history=[];
-let predA=[];
-let predB=[];
-let current=null;
-let busy=false;
-let historyBusy=false;
-
-/* 本地保存 */
-function readStore(key){
- try{
-  return JSON.parse(localStorage.getItem(key)||"[]");
- }catch(e){
+function readJSON(key, fallback) {
+  try {
+    const value = JSON.parse(localStorage.getItem(key) || "null");
+    return value == null ? fallback : value;
+  } catch (e) {
+    return fallback;
+  }
+}
+function saveLocal() {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  localStorage.setItem(PRED_A_KEY, JSON.stringify(predictionsA));
+  localStorage.setItem(PRED_B_KEY, JSON.stringify(predictionsB));
+}
+function setStatus(message) {
+  document.getElementById("updateStatus").textContent = message;
+}
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+  })[ch]);
+}
+function normalizeIssue(value) {
+  return String(value ?? "").trim();
+}
+function normalizeNumbers(value) {
+  if (Array.isArray(value)) {
+    return value.map(x => Number(x)).filter(x => Number.isInteger(x) && x >= 1 && x <= 10).slice(0,10);
+  }
+  if (typeof value === "string") {
+    return value.split(/[-,\s，、]+/).map(x => Number(x)).filter(x => Number.isInteger(x) && x >= 1 && x <= 10).slice(0,10);
+  }
   return [];
- }
 }
-
-function saveAll(){
- localStorage.setItem(KEYS.history,JSON.stringify(history));
- localStorage.setItem(KEYS.predA,JSON.stringify(predA));
- localStorage.setItem(KEYS.predB,JSON.stringify(predB));
+function normalizeDraw(item) {
+  if (!item || typeof item !== "object") return null;
+  const issue = normalizeIssue(item.issue ?? item.issueNo ?? item.qihao ?? item.period ?? item.expect ?? item.drawIssue ?? item.date);
+  const raw = item.numbers ?? item.result ?? item.openCode ?? item.open_code ?? item.code ?? item.number ?? item.data;
+  const numbers = normalizeNumbers(raw);
+  if (!issue || numbers.length < 10) return null;
+  return { issue, numbers: numbers.slice(0,10) };
 }
-
-function pad(n){
- return String(n).padStart(2,"0");
-}
-
-/* 期号统一处理 */
-function normalizeIssue(value){
- return String(value||"")
-  .trim()
-  .replace(/\D/g,"")
-  .replace(/^0+/,"")||"0";
-}
-
-/* 号码识别 */
-function parseNumbers(value){
- if(Array.isArray(value))return value.map(Number);
-
- if(typeof value!=="string")return [];
-
- return value.trim()
-  .split(/[-,\s，]+/)
-  .filter(Boolean)
-  .map(Number);
-}
-
-function validNumbers(nums){
- return Array.isArray(nums)&&
-  nums.length===10&&
-  nums.every(n=>Number.isInteger(n)&&n>=1&&n<=10)&&
-  new Set(nums).size===10;
-}
-
-/* 时间格式化 */
-function formatDrawTime(value){
- if(!value)return "开奖时间未提供";
-
- let s=String(value).trim();
-
- if(/^\d{10,13}$/.test(s)){
-  let timestamp=Number(s);
-  if(s.length===10)timestamp*=1000;
-
-  const d=new Date(timestamp);
-  if(!isNaN(d.getTime())){
-   return d.getFullYear()+"-"+
-    pad(d.getMonth()+1)+"-"+
-    pad(d.getDate())+" "+
-    pad(d.getHours())+":"+
-    pad(d.getMinutes())+":"+
-    pad(d.getSeconds());
+function extractDraws(payload) {
+  let list = [];
+  if (Array.isArray(payload)) list = payload;
+  else if (payload && typeof payload === "object") {
+    list = payload.data ?? payload.list ?? payload.records ?? payload.result ?? payload.history ?? [];
+    if (!Array.isArray(list) && list && typeof list === "object") {
+      list = list.list ?? list.records ?? [];
+    }
   }
- }
+  if (!Array.isArray(list)) return [];
+  return list.map(normalizeDraw).filter(Boolean);
+}
+function sortHistory() {
+  history = history.filter(x => x && x.issue && Array.isArray(x.numbers) && x.numbers.length >= 10);
+  const seen = new Map();
+  history.forEach(x => seen.set(String(x.issue), {issue:String(x.issue), numbers:x.numbers.slice(0,10)}));
+  history = Array.from(seen.values()).sort((a,b) => a.issue.localeCompare(b.issue, "zh-CN", {numeric:true}));
+  if (history.length > 2000) history = history.slice(-2000);
+}
+async function apiGet(action) {
+  const response = await fetch(API_BASE + "?action=" + encodeURIComponent(action), {cache:"no-store"});
+  if (!response.ok) throw new Error("服务器响应异常：" + response.status);
+  return response.json();
+}
+function mergeDraws(draws) {
+  if (!Array.isArray(draws) || !draws.length) return 0;
+  const before = history.length;
+  const map = new Map(history.map(x => [String(x.issue), x]));
+  draws.forEach(x => map.set(String(x.issue), x));
+  history = Array.from(map.values());
+  sortHistory();
+  saveLocal();
+  return history.length - before;
+}
+// ================================
+// V2 多周期综合预测算法
+// ================================
 
- return s.replace("T"," ").replace(/Z$/,"");
+function clamp(value, min, max) {
+  return Math.max(min, Math.min(max, value));
 }
 
-/* 安全显示文字 */
-function escapeHTML(value){
- return String(value??"").replace(/[&<>"']/g,function(c){
+function getWindowRate(draws, digit, topCount) {
+  if (!draws.length) return 0;
+  let hits = 0;
+  for (const draw of draws) {
+    if (draw.numbers.slice(0, topCount).includes(digit)) hits++;
+  }
+  return hits / draws.length;
+}
+
+function getPositionScore(draws, digit) {
+  if (!draws.length) return 0;
+  let total = 0;
+  let count = 0;
+
+  for (const draw of draws) {
+    const position = draw.numbers.indexOf(digit);
+    if (position >= 0) {
+      total += (10 - position) / 10;
+      count++;
+    }
+  }
+  return count ? total / draws.length : 0;
+}
+
+function getGapInfo(draws, digit, topCount) {
+  let gap = 0;
+  for (let i = draws.length - 1; i >= 0; i--) {
+    if (draws[i].numbers.slice(0, topCount).includes(digit)) break;
+    gap++;
+  }
+
+  const gaps = [];
+  let currentGap = 0;
+
+  for (const draw of draws) {
+    if (draw.numbers.slice(0, topCount).includes(digit)) {
+      gaps.push(currentGap);
+      currentGap = 0;
+    } else {
+      currentGap++;
+    }
+  }
+
+  if (currentGap > 0) gaps.push(currentGap);
+
+  const averageGap = gaps.length
+    ? gaps.reduce((a,b) => a+b,0) / gaps.length
+    : draws.length;
+
   return {
-   "&":"&amp;",
-   "<":"&lt;",
-   ">":"&gt;",
-   '"':"&quot;",
-   "'":"&#39;"
-  }[c];
- });
+    current: gap,
+    average: averageGap
+  };
 }
 
-/* 最新开奖解析 */
-function getCurrentData(json){
- const d=json?.result?.data||
-         json?.data?.result?.data||
-         json?.data||
-         json?.result||
-         json;
+function getDigitFeatures(draws, digit, topCount) {
+  const recent10 = draws.slice(-10);
+  const recent30 = draws.slice(-30);
+  const recent100 = draws.slice(-100);
 
- const nums=parseNumbers(d?.preDrawCode);
+  const rate10 = getWindowRate(recent10, digit, topCount);
+  const rate30 = getWindowRate(recent30, digit, topCount);
+  const rate100 = getWindowRate(recent100, digit, topCount);
 
- if(!validNumbers(nums))return null;
+  const positionScore = getPositionScore(recent100, digit);
+  const gap = getGapInfo(recent100, digit, topCount);
 
- return {
-  issue:String(d.preDrawIssue||d.issue||""),
-  numbers:nums,
-  time:d.preDrawTime||d.preDrawDate||"",
-  nextIssue:String(d.drawIssue||"")
- };
+  const trend = rate10 - rate30;
+  const longTrend = rate30 - rate100;
+
+  return {
+    rate10,
+    rate30,
+    rate100,
+    positionScore,
+    gapCurrent: gap.current,
+    gapAverage: gap.average,
+    trend,
+    longTrend
+  };
 }
 
-/* 历史数据解析 */
-function extractHistory(json){
- const result=[];
- const visited=new Set();
+// 不把遗漏时间直接当成“该开出”的证据。
+// 遗漏只用于辅助观察，避免赌徒谬误。
+function scoreDigit(draws, digit, topCount, profile) {
+  const f = getDigitFeatures(draws, digit, topCount);
 
- function scan(obj,depth){
-  if(!obj||typeof obj!=="object"||depth>9||visited.has(obj))return;
+  const weights = {
+    balanced: {short:0.25, middle:0.40, long:0.25, position:0.10, trend:0},
+    short:    {short:0.50, middle:0.25, long:0.10, position:0.10, trend:0.05},
+    long:     {short:0.10, middle:0.30, long:0.45, position:0.15, trend:0.05},
+    trend:    {short:0.30, middle:0.25, long:0.15, position:0.10, trend:0.25}
+  }[profile] || {
+    short:0.25, middle:0.40, long:0.25, position:0.10, trend:0
+  };
 
-  visited.add(obj);
+  const base =
+    f.rate10 * weights.short +
+    f.rate30 * weights.middle +
+    f.rate100 * weights.long +
+    f.positionScore * weights.position +
+    clamp(f.trend + 0.5, 0, 1) * weights.trend;
 
-  if(Array.isArray(obj)){
-   obj.forEach(x=>scan(x,depth+1));
-   return;
+  return {
+    digit,
+    score:base,
+    features:f
+  };
+}
+
+function rankDigits(draws, topCount, profile) {
+  if (!draws.length) return [];
+
+  const result = [];
+  for (let digit = 1; digit <= 10; digit++) {
+    result.push(scoreDigit(draws, digit, topCount, profile));
   }
 
-  const code=obj.preDrawCode||
-    obj.drawCode||
-    obj.openCode||
-    obj.numbers||
-    obj.number||
-    obj.code;
+  result.sort((a,b) => {
+    if (b.score !== a.score) return b.score - a.score;
+    if (b.features.rate30 !== a.features.rate30) {
+      return b.features.rate30 - a.features.rate30;
+    }
+    return a.digit - b.digit;
+  });
 
-  const nums=parseNumbers(code);
+  return result;
+}
 
-  if(validNumbers(nums)){
-   const issue=obj.preDrawIssue||
-     obj.drawIssue||
-     obj.issue||
-     obj.period||
-     obj.qihao||
-     obj.expect||
-     "";
+// ================================
+// 滚动历史回测
+// ================================
 
-   if(issue){
-    result.push({
-     issue:String(issue),
-     numbers:nums,
-     time:obj.preDrawTime||obj.drawTime||obj.date||""
-    });
-   }
+function evaluateProfile(draws, topCount, profile) {
+  let tested = 0;
+  let hits = 0;
+
+  // 每一期只使用此前的数据预测，不使用当期或未来数据。
+  for (let i = 30; i < draws.length; i++) {
+    const past = draws.slice(0, i);
+    const target = draws[i];
+
+    const ranking = rankDigits(past, topCount, profile);
+    if (!ranking.length) continue;
+
+    const prediction = ranking[0].digit;
+    tested++;
+
+    if (target.numbers.slice(0, topCount).includes(prediction)) {
+      hits++;
+    }
   }
 
-  Object.keys(obj).forEach(k=>{
-   if(typeof obj[k]==="object")scan(obj[k],depth+1);
-  });
- }
-
- scan(json,0);
- return result;
+  return {
+    profile,
+    tested,
+    hits,
+    rate: tested ? hits / tested : 0
+  };
 }
 
-/* 合并历史记录，保留本地数据 */
-function mergeHistory(rows){
- const map=new Map();
-
- history.forEach(r=>{
-  map.set(normalizeIssue(r.issue),r);
- });
-
- rows.forEach(r=>{
-  if(r.issue&&validNumbers(r.numbers)){
-   const key=normalizeIssue(r.issue);
-   const old=map.get(key);
-
-   map.set(key,{
-    ...old,
-    ...r,
-    time:r.time||old?.time||""
-   });
-  }
- });
-
- history=Array.from(map.values())
-  .sort((a,b)=>{
-   return normalizeIssue(b.issue).localeCompare(
-    normalizeIssue(a.issue),
-    undefined,
-    {numeric:true}
-   );
-  })
-  .slice(0,2000);
-
- saveAll();
-}
-
-/* 网络请求 */
-async function getJSON(url){
- const res=await fetch(url,{
-  method:"GET",
-  cache:"no-store"
- });
-
- if(!res.ok){
-  throw new Error("网络请求失败："+res.status);
- }
-
- return await res.json();
-}
-
-/* 读取最新开奖：保留原版 action=current */
-async function refreshCurrent(){
- const json=await getJSON(
-  API+"?action=current&t="+Date.now()
- );
-
- const data=getCurrentData(json);
-
- if(!data){
-  throw new Error("没有识别到10个开奖号码");
- }
-
- current=data;
-
- mergeHistory([data]);
-
- renderCurrent();
-
- return data;
-}
-
-/* 显示最新开奖 */
-function renderCurrent(){
- if(!current)return;
-
- document.getElementById("issue").textContent=current.issue;
- document.getElementById("drawTime").textContent=
-  formatDrawTime(current.time);
-
- document.getElementById("latestNumbers").innerHTML=
-  current.numbers.map((n,i)=>`
-   <div class="num ${i===0?"first":""}">
-    ${pad(n)}
-    <small>${i===0?"第一名":"第"+(i+1)+"名"}</small>
-   </div>
-  `).join("");
-
- document.getElementById("connection").textContent="连接成功";
- document.getElementById("connection").style.color="#42e09b";
-
- document.getElementById("updateStatus").textContent=
-  "最新开奖读取成功："+new Date().toLocaleTimeString();
-}
-
-/* 综合分析：全部10个位置参与 */
-function analyzeSystem(topCount,range){
- const rows=history
-  .filter(r=>validNumbers(r.numbers))
-  .slice()
-  .sort((a,b)=>{
-   return normalizeIssue(b.issue).localeCompare(
-    normalizeIssue(a.issue),
-    undefined,
-    {numeric:true}
-   );
-  })
-  .slice(0,range);
-
- if(rows.length<5)return null;
-
- const total=rows.length;
-
- const recent=rows.slice(0,Math.max(3,Math.ceil(total/3)));
- const older=rows.slice(recent.length);
-
- const allFreq=Array(11).fill(0);
- const recentFreq=Array(11).fill(0);
- const olderFreq=Array(11).fill(0);
- const targetFreq=Array(11).fill(0);
- const weighted=Array(11).fill(0);
- const gap=Array(11).fill(999);
-
- rows.forEach((r,index)=>{
-  const recency=Math.pow(0.97,index);
-
-  r.numbers.forEach((num,pos)=>{
-   allFreq[num]++;
-   weighted[num]+=(11-pos)*recency;
-  });
-
-  r.numbers.slice(0,topCount).forEach(num=>{
-   targetFreq[num]++;
-  });
- });
-
- recent.forEach(r=>{
-  r.numbers.forEach(n=>recentFreq[n]++);
- });
-
- older.forEach(r=>{
-  r.numbers.forEach(n=>olderFreq[n]++);
- });
-
- for(let n=1;n<=10;n++){
-  for(let i=0;i<rows.length;i++){
-   if(rows[i].numbers.slice(0,topCount).includes(n)){
-    gap[n]=i;
-    break;
-   }
-  }
- }
-
- const result=[];
-
- for(let n=1;n<=10;n++){
-  const targetRate=targetFreq[n]/total;
-
-  const recentRate=recentFreq[n]/Math.max(1,recent.length);
-  const olderRate=olderFreq[n]/Math.max(1,older.length);
-
-  const trend=recentRate-olderRate;
-
-  const allScore=weighted[n]/total;
-  const targetScore=targetRate*10;
-  const trendScore=trend*5;
-  const gapScore=Math.min(gap[n],range)*0.025;
-
-  const score=
-   allScore*0.45+
-   targetScore*0.40+
-   trendScore*0.10+
-   gapScore*0.05;
-
-  result.push({
-   number:n,
-   score:score,
-   allFreq:allFreq[n],
-   targetFreq:targetFreq[n],
-   gap:gap[n],
-   trend:trend
-  });
- }
-
- result.sort((a,b)=>b.score-a.score);
-
- return {
-  rows:rows,
-  ranked:result,
-  best:result[0]
- };
-}
-
-/* 创建预测记录 */
-function createPrediction(system,issue,result,range){
- const list=system==="A"?predA:predB;
-
- if(!issue||!result)return;
-
- if(list.some(p=>normalizeIssue(p.issue)===normalizeIssue(issue)))return;
-
- list.unshift({
-  issue:String(issue),
-  number:result.best.number,
-  range:range,
-  created:new Date().toISOString(),
-  status:"待开奖",
-  actual:null
- });
-
- saveAll();
-}
-
-/* 自动核对预测结果 */
-function checkResults(){
- if(!current)return;
-
- let changed=false;
-
- function check(list,count){
-  list.forEach(p=>{
-   if(p.status!=="待开奖")return;
-
-   const target=normalizeIssue(p.issue);
-
-   let result=history.find(r=>
-    normalizeIssue(r.issue)===target&&
-    validNumbers(r.numbers)
-   );
-
-   if(!result&&
-      normalizeIssue(current.issue)===target&&
-      validNumbers(current.numbers)){
-    result=current;
-   }
-
-   if(!result)return;
-
-   const winningNumbers=result.numbers.slice(0,count);
-
-   p.status=winningNumbers.includes(Number(p.number))?"中":"挂";
-   p.actual=result.numbers.slice();
-   p.checkedAt=new Date().toISOString();
-
-   changed=true;
-  });
- }
-
- check(predA,3);
- check(predB,7);
-
- if(changed)saveAll();
-
- renderStats("A");
- renderStats("B");
-}
-
-/* 更新预测系统 */
-function updateSystem(system){
- const isA=system==="A";
- const topCount=isA?3:7;
-
- const range=Number(
-  document.getElementById(isA?"rangeA":"rangeB").value
- );
-
- const analysis=analyzeSystem(topCount,range);
-
- const numberId=isA?"numberA":"numberB";
- const reasonId=isA?"reasonA":"reasonB";
-
- if(!analysis){
-  document.getElementById(numberId).textContent="--";
-
-  document.getElementById(reasonId).textContent=
-   "历史数据不足，请先读取或导入至少5期记录";
-
-  renderStats(system);
-  return;
- }
-
- const issue=current?.nextIssue||"";
-
- if(issue){
-  createPrediction(system,issue,analysis,range);
- }
-
- const list=isA?predA:predB;
-
- const existing=issue?
-  list.find(p=>normalizeIssue(p.issue)===normalizeIssue(issue)):
-  null;
-
- const chosen=existing?existing.number:analysis.best.number;
-
- document.getElementById(numberId).textContent=pad(chosen);
-
- const best=analysis.ranked.find(x=>x.number===Number(chosen));
-
- document.getElementById(reasonId).textContent=
-  "分析"+analysis.rows.length+"期 · 全部10个位置参与统计 · "+
-  "目标范围出现"+(best?.targetFreq||0)+"次 · 遗漏"+
-  (best?.gap>=999?"暂无":best?.gap+"期");
-
- document.getElementById(isA?"topA":"topB").textContent=pad(chosen);
-
- renderStats(system);
-}
-
-/* 显示预测记录和命中率 */
-function renderStats(system){
- const isA=system==="A";
- const list=isA?predA:predB;
- const prefix=isA?"A":"B";
-
- const done=list.filter(p=>
-  p.status==="中"||p.status==="挂"
- );
-
- const hits=done.filter(p=>p.status==="中").length;
-
- document.getElementById("total"+prefix).textContent=list.length;
- document.getElementById("hit"+prefix).textContent=hits;
-
- document.getElementById("rate"+prefix).textContent=
-  done.length?(hits/done.length*100).toFixed(1)+"%":"0%";
-
- const box=document.getElementById("history"+prefix);
-
- if(!list.length){
-  box.innerHTML='<div class="muted">暂无预测记录</div>';
-  return;
- }
-
- box.innerHTML=list.slice(0,100).map(p=>{
-  const cls=p.status==="中"?"hit":
-   p.status==="挂"?"miss":"pending";
-
-  let detail="";
-
-  if(p.actual){
-   const count=isA?3:7;
-
-   detail=" · 开奖目标范围："+
-    p.actual.slice(0,count).map(pad).join("-");
+function selectProfile(draws, topCount) {
+  const profiles = ["balanced","short","long","trend"];
+  const results = profiles.map(profile =>
+    evaluateProfile(draws, topCount, profile)
+  );
+
+  if (!results.some(x => x.tested >= 20)) {
+    return {
+      selected:"balanced",
+      results,
+      reason:"历史回测期数不足，使用平衡权重"
+    };
   }
 
-  return `
-   <div class="record">
-    <div class="row">
-     <strong>第${escapeHTML(p.issue)}期</strong>
-     <span class="${cls}">${escapeHTML(p.status)}</span>
-    </div>
-    推荐号码：<strong>${pad(p.number)}</strong>
-    <br>统计范围：最近${p.range}期
-    ${detail}
-   </div>
+  results.sort((a,b) => b.rate - a.rate);
+
+  const best = results[0];
+  const balanced = results.find(x => x.profile === "balanced");
+
+  // 防止因少量历史样本的偶然波动而切换权重。
+  if (
+    !balanced ||
+    best.tested < 20 ||
+    best.rate < balanced.rate + 0.015
+  ) {
+    return {
+      selected:"balanced",
+      results,
+      reason:"其他权重没有明显优于平衡权重"
+    };
+  }
+
+  return {
+    selected:best.profile,
+    results,
+    reason:"根据历史滚动回测选择表现较好的权重"
+  };
+}
+
+function makePrediction(draws, topCount) {
+  if (draws.length < 10) {
+    return {
+      digit:null,
+      profile:"balanced",
+      detail:"历史数据不足10期"
+    };
+  }
+
+  const profileInfo = selectProfile(draws, topCount);
+  const ranking = rankDigits(draws, topCount, profileInfo.selected);
+
+  if (!ranking.length) {
+    return {
+      digit:null,
+      profile:profileInfo.selected,
+      detail:"暂无可用数据"
+    };
+  }
+
+  const best = ranking[0];
+
+  return {
+    digit:best.digit,
+    profile:profileInfo.selected,
+    score:best.score,
+    detail:
+      "分析" + draws.length + "期 · " +
+      "短中长期综合 · " +
+      "权重：" + profileInfo.selected,
+    reason:profileInfo.reason,
+    features:best.features
+  };
+}
+
+// ================================
+// 两套系统独立预测
+// ================================
+
+function analyzeSystem(topCount) {
+  const range = Number(document.getElementById("analysisRange").value || 50);
+  const draws = history.slice(-range);
+
+  return makePrediction(draws, topCount);
+}
+
+function getRandomBaseline(topCount) {
+  return topCount / 10;
+}
+
+function runBacktest() {
+  const range = Number(document.getElementById("analysisRange").value || 50);
+  const draws = history.slice(-Math.max(range, 100));
+
+  const a = evaluateProfile(draws, 3, "balanced");
+  const b = evaluateProfile(draws, 7, "balanced");
+
+  const randomA = getRandomBaseline(3);
+  const randomB = getRandomBaseline(7);
+
+  document.getElementById("backtestTable").innerHTML = `
+    <tr>
+      <td>系统A</td>
+      <td>${a.tested}</td>
+      <td>${a.hits}</td>
+      <td>${a.tested ? (a.rate*100).toFixed(1)+"%" : "—"}</td>
+      <td>${(randomA*100).toFixed(0)}%</td>
+    </tr>
+    <tr>
+      <td>系统B</td>
+      <td>${b.tested}</td>
+      <td>${b.hits}</td>
+      <td>${b.tested ? (b.rate*100).toFixed(1)+"%" : "—"}</td>
+      <td>${(randomB*100).toFixed(0)}%</td>
+    </tr>
   `;
- }).join("");
+
+  document.getElementById("backtestSummary").textContent =
+    "使用历史数据进行逐期滚动测试。回测数据：" +
+    draws.length + "期。随机基线为理论参考值，不代表实际预测结果。";
+}
+// ================================
+// 预测记录管理
+// ================================
+
+function findPrediction(list, issue) {
+  return list.find(x => String(x.issue) === String(issue));
 }
 
-/* 最近20期：时间在上面，10个号码横向排列 */
-function renderRecentHistory(){
- const box=document.getElementById("recentHistory");
- const count=document.getElementById("recentCount");
- const status=document.getElementById("recentStatus");
+function createPrediction() {
+  if (history.length < 10) {
+    alert("历史开奖数据不足10期，暂时无法预测。");
+    return;
+  }
 
- if(!box)return;
+  const a = analyzeSystem(3);
+  const b = analyzeSystem(7);
 
- const rows=history
-  .filter(r=>validNumbers(r.numbers))
-  .slice()
-  .sort((a,b)=>{
-   return normalizeIssue(b.issue).localeCompare(
-    normalizeIssue(a.issue),
-    undefined,
-    {numeric:true}
-   );
-  })
-  .slice(0,20);
+  if (a.digit == null || b.digit == null) {
+    alert("预测失败，请先刷新开奖数据。");
+    return;
+  }
 
- count.textContent=rows.length+"期";
+  const lastIssue = current.issue ||
+    (history.length ? history[history.length - 1].issue : "");
 
- if(!rows.length){
-  box.innerHTML='<div class="muted">暂时没有历史开奖记录</div>';
-  return;
- }
+  const nextIssue = getNextIssue(lastIssue);
 
- box.innerHTML=rows.map(r=>`
-  <div class="recent-item">
-   <div class="recent-time">
-    ${escapeHTML(formatDrawTime(r.time))}
-    <span class="recent-issue">第${escapeHTML(r.issue)}期</span>
-   </div>
+  const recordA = {
+    issue:nextIssue,
+    digit:a.digit,
+    status:"pending",
+    createdAt:Date.now(),
+    profile:a.profile,
+    detail:a.detail
+  };
 
-   <div class="recent-numbers">
-    ${r.numbers.map((n,i)=>`
-     <div class="recent-num ${i===0?"first":""}">
-      ${pad(n)}
-     </div>
-    `).join("")}
-   </div>
-  </div>
- `).join("");
+  const recordB = {
+    issue:nextIssue,
+    digit:b.digit,
+    status:"pending",
+    createdAt:Date.now(),
+    profile:b.profile,
+    detail:b.detail
+  };
 
- status.textContent="最近20期开奖记录 · 自动更新";
+  const oldA = findPrediction(predictionsA, nextIssue);
+  const oldB = findPrediction(predictionsB, nextIssue);
+
+  if (oldA && oldA.status === "pending") {
+    if (!confirm("这一期已经有预测记录，是否覆盖原来的预测？")) {
+      return;
+    }
+    predictionsA = predictionsA.filter(x => x.issue !== nextIssue);
+    predictionsB = predictionsB.filter(x => x.issue !== nextIssue);
+  }
+
+  predictionsA.push(recordA);
+  predictionsB.push(recordB);
+
+  saveLocal();
+  renderAll();
+
+  alert(
+    "预测已保存！\n" +
+    "系统A前三名：" + a.digit + "\n" +
+    "系统B前七名：" + b.digit + "\n" +
+    "目标期号：" + nextIssue
+  );
 }
 
-/* 刷新所有显示 */
-function renderAll(){
- document.getElementById("historyCount").textContent=history.length;
+function getNextIssue(issue) {
+  const value = String(issue || "").trim();
 
- renderRecentHistory();
+  // 常见期号格式：日期+期次，优先增加末尾数字。
+  const match = value.match(/^(.*?)(\d+)$/);
+  if (match) {
+    const prefix = match[1];
+    const digits = match[2];
+    const next = String(Number(digits) + 1).padStart(digits.length, "0");
+    return prefix + next;
+  }
 
- updateSystem("A");
- updateSystem("B");
-
- renderStats("A");
- renderStats("B");
+  return value ? value + "-下一期" : "下一期";
 }
 
-/* 同步历史开奖记录：保留原版接口 */
-async function loadHistory(){
- if(historyBusy)return;
+function checkResults() {
+  let changed = false;
 
- historyBusy=true;
+  for (const draw of history) {
+    const resultA = findPrediction(predictionsA, draw.issue);
+    const resultB = findPrediction(predictionsB, draw.issue);
 
- const status=document.getElementById("historyStatus");
+    if (resultA && resultA.status === "pending") {
+      resultA.status = draw.numbers.slice(0,3).includes(Number(resultA.digit))
+        ? "hit"
+        : "miss";
+      resultA.openNumbers = draw.numbers;
+      changed = true;
+    }
 
- status.textContent="正在同步历史开奖记录...";
+    if (resultB && resultB.status === "pending") {
+      resultB.status = draw.numbers.slice(0,7).includes(Number(resultB.digit))
+        ? "hit"
+        : "miss";
+      resultB.openNumbers = draw.numbers;
+      changed = true;
+    }
+  }
 
- try{
-  const url=API+"?action=history&days=8&t="+Date.now();
+  if (changed) saveLocal();
+}
 
-  const json=await getJSON(url);
+// ================================
+// 页面显示
+// ================================
 
-  const rows=extractHistory(json);
+function renderLatest() {
+  const issueEl = document.getElementById("latestIssue");
+  const numbersEl = document.getElementById("latestNumbers");
 
-  const map=new Map();
+  if (!history.length) {
+    issueEl.textContent = "暂无开奖记录";
+    numbersEl.innerHTML = "";
+    return;
+  }
 
-  rows.forEach(r=>{
-   map.set(normalizeIssue(r.issue),r);
+  const latest = history[history.length - 1];
+  issueEl.textContent = "期号：" + latest.issue;
+
+  numbersEl.innerHTML = latest.numbers.map((n,i) =>
+    `<span class="number-chip ${i===0 ? "first" : ""}">
+      ${i===0 ? "★ " : ""}${n}
+    </span>`
+  ).join("");
+}
+
+function renderPredictions() {
+  const latestA = predictionsA[predictionsA.length - 1];
+  const latestB = predictionsB[predictionsB.length - 1];
+
+  document.getElementById("predictionA").textContent =
+    latestA ? latestA.digit : "—";
+
+  document.getElementById("predictionB").textContent =
+    latestB ? latestB.digit : "—";
+
+  document.getElementById("detailA").textContent =
+    latestA ? latestA.detail || "综合分析" : "等待预测";
+
+  document.getElementById("detailB").textContent =
+    latestB ? latestB.detail || "综合分析" : "等待预测";
+
+  document.getElementById("resultA").innerHTML =
+    latestA ? getStatusHTML(latestA) : "尚未预测";
+
+  document.getElementById("resultB").innerHTML =
+    latestB ? getStatusHTML(latestB) : "尚未预测";
+}
+
+function getStatusHTML(record) {
+  if (record.status === "hit") {
+    return `<span class="hit">中</span>`;
+  }
+  if (record.status === "miss") {
+    return `<span class="miss">挂</span>`;
+  }
+  return `<span class="muted">等待开奖（${escapeHTML(record.issue)}）</span>`;
+}
+
+function renderPredictionHistory() {
+  const body = document.getElementById("predictionHistory");
+  const rows = [];
+
+  const map = new Map();
+
+  predictionsA.forEach(a => {
+    map.set(String(a.issue), {issue:a.issue, a, b:null});
   });
 
-  const uniqueRows=Array.from(map.values());
+  predictionsB.forEach(b => {
+    const key = String(b.issue);
+    const old = map.get(key) || {issue:b.issue, a:null, b:null};
+    old.b = b;
+    map.set(key, old);
+  });
 
-  if(uniqueRows.length){
-   mergeHistory(uniqueRows);
+  const records = Array.from(map.values()).sort((a,b) =>
+    String(b.issue).localeCompare(String(a.issue), "zh-CN", {numeric:true})
+  ).slice(0,50);
 
-   status.textContent=
-    "历史同步成功："+uniqueRows.length+
-    "期 · "+new Date().toLocaleTimeString();
-  }else{
-   status.textContent=
-    "接口没有返回可识别的历史记录，本地记录不会丢失。";
+  records.forEach(item => {
+    const a = item.a;
+    const b = item.b;
+
+    rows.push(`
+      <tr>
+        <td>${escapeHTML(item.issue)}</td>
+        <td>${a ? a.digit : "—"}</td>
+        <td>${a ? getStatusHTML(a) : "—"}</td>
+        <td>${b ? b.digit : "—"}</td>
+        <td>${b ? getStatusHTML(b) : "—"}</td>
+      </tr>
+    `);
+  });
+
+  body.innerHTML = rows.length
+    ? rows.join("")
+    : '<tr><td colspan="5">暂无预测记录</td></tr>';
+}
+
+function renderDrawHistory() {
+  const body = document.getElementById("drawHistory");
+  const rows = history.slice(-20).reverse();
+
+  body.innerHTML = rows.length
+    ? rows.map(draw => `
+      <tr>
+        <td>${escapeHTML(draw.issue)}</td>
+        <td><strong style="color:#d97706">${draw.numbers[0]}</strong></td>
+        <td>${draw.numbers.join("-")}</td>
+      </tr>
+    `).join("")
+    : '<tr><td colspan="3">暂无开奖记录</td></tr>';
+}
+
+function renderAll() {
+  checkResults();
+  renderLatest();
+  renderPredictions();
+  renderPredictionHistory();
+  renderDrawHistory();
+  runBacktest();
+}
+// ================================
+// 自动同步开奖数据
+// ================================
+
+async function loadHistory() {
+  try {
+    const data = await apiGet("history&days=8");
+    const draws = extractDraws(data);
+
+    if (draws.length) {
+      mergeDraws(draws);
+      setStatus("历史数据同步成功，共 " + history.length + " 期");
+    } else {
+      setStatus("服务器暂未返回可识别的历史数据");
+    }
+  } catch (error) {
+    console.error("历史数据同步失败", error);
+    setStatus("历史数据同步失败，保留本地记录");
+  }
+}
+
+async function refreshCurrent() {
+  try {
+    const data = await apiGet("current");
+    const draws = extractDraws(data);
+
+    if (draws.length) {
+      mergeDraws(draws);
+      current = draws[draws.length - 1];
+      setStatus("最新开奖数据已更新：" + current.issue);
+    } else {
+      const one = normalizeDraw(data.data ?? data.result ?? data);
+      if (one) {
+        mergeDraws([one]);
+        current = one;
+        setStatus("最新开奖数据已更新：" + current.issue);
+      }
+    }
+  } catch (error) {
+    console.error("最新开奖刷新失败", error);
+    setStatus("最新开奖刷新失败，稍后自动重试");
+  }
+}
+
+async function refreshAll() {
+  if (isRefreshing) return;
+  isRefreshing = true;
+  setStatus("正在刷新开奖数据……");
+
+  try {
+    await loadHistory();
+    await refreshCurrent();
+
+    if (!current.issue && history.length) {
+      current = history[history.length - 1];
+    }
+
+    sortHistory();
+    checkResults();
+    saveLocal();
+    renderAll();
+
+    setStatus(
+      "刷新完成 · 当前保存 " + history.length +
+      " 期 · " + new Date().toLocaleTimeString()
+    );
+  } finally {
+    isRefreshing = false;
+  }
+}
+
+// ================================
+// 导入和导出
+// ================================
+
+function exportData() {
+  const data = {
+    version:2,
+    exportedAt:new Date().toISOString(),
+    history,
+    predictionsA,
+    predictionsB
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(data,null,2)],
+    {type:"application/json"}
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "Speedy10预测记录.json";
+  link.click();
+
+  URL.revokeObjectURL(url);
+}
+
+function importData(event) {
+  const file = event.target.files && event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+
+      if (!data || typeof data !== "object") {
+        throw new Error("文件格式不正确");
+      }
+
+      if (Array.isArray(data.history)) {
+        history = history.concat(
+          data.history.map(normalizeDraw).filter(Boolean)
+        );
+      }
+
+      if (Array.isArray(data.predictionsA)) {
+        predictionsA = predictionsA.concat(data.predictionsA);
+      }
+
+      if (Array.isArray(data.predictionsB)) {
+        predictionsB = predictionsB.concat(data.predictionsB);
+      }
+
+      sortHistory();
+
+      predictionsA = uniquePredictions(predictionsA);
+      predictionsB = uniquePredictions(predictionsB);
+
+      saveLocal();
+      checkResults();
+      renderAll();
+
+      alert("导入成功！");
+    } catch (error) {
+      alert("导入失败：" + error.message);
+    }
+
+    event.target.value = "";
+  };
+
+  reader.readAsText(file);
+}
+
+function uniquePredictions(list) {
+  const map = new Map();
+
+  list.forEach(item => {
+    if (!item || item.issue == null) return;
+    map.set(String(item.issue), item);
+  });
+
+  return Array.from(map.values()).slice(-2000);
+}
+
+function clearPredictions() {
+  if (!confirm("确定清空所有预测记录吗？开奖记录不会被删除。")) {
+    return;
+  }
+
+  predictionsA = [];
+  predictionsB = [];
+
+  saveLocal();
+  renderAll();
+}
+
+// ================================
+// 启动程序
+// ================================
+
+function start() {
+  history = readJSON(HISTORY_KEY, []);
+  predictionsA = readJSON(PRED_A_KEY, []);
+  predictionsB = readJSON(PRED_B_KEY, []);
+
+  sortHistory();
+
+  if (history.length) {
+    current = history[history.length - 1];
   }
 
   checkResults();
   renderAll();
 
- }catch(e){
-  status.textContent=
-   "历史同步失败："+e.message+"；本地记录未受影响。";
- }finally{
-  historyBusy=false;
- }
-}
+  refreshAll();
 
-/* 刷新最新开奖 */
-async function refreshAll(){
- if(busy)return;
+  // 每30秒刷新一次最新开奖。
+  setInterval(() => {
+    refreshCurrent().then(() => {
+      sortHistory();
+      checkResults();
+      saveLocal();
+      renderAll();
+    });
+  }, 30000);
 
- busy=true;
-
- document.getElementById("updateStatus").textContent=
-  "正在检查最新开奖...";
-
- try{
-  const oldIssue=current?.issue||"";
-
-  await refreshCurrent();
-
-  const newIssue=current?.issue||"";
-
-  if(newIssue&&newIssue!==oldIssue){
-   document.getElementById("recentStatus").textContent=
-    "发现新期开奖，正在更新最近20期记录...";
-
-   await loadHistory();
-  }
-
-  checkResults();
-  renderAll();
-
-  document.getElementById("updateStatus").textContent=
-   "最新开奖已更新，两套预测和历史记录已检查。";
-
- }catch(e){
-  document.getElementById("connection").textContent="读取失败";
-  document.getElementById("connection").style.color="#ff7777";
-
-  document.getElementById("updateStatus").textContent=e.message;
-
- }finally{
-  busy=false;
- }
-}
-
-/* 手动导入历史数据 */
-function importManual(){
- const text=document.getElementById("manualData").value.trim();
-
- if(!text){
-  alert("请先输入开奖记录");
-  return;
- }
-
- const rows=[];
-
- text.split(/\n/).forEach((line,index)=>{
-  line=line.trim();
-
-  if(!line)return;
-
-  const parts=line.split(/\s+/);
-
-  let issue=String(Date.now()+index);
-  let code="";
-
-  if(parts.length>=2&&/^\d{5,}$/.test(parts[0])){
-   issue=parts[0];
-   code=parts.slice(1).join("");
-  }else{
-   code=parts.join("");
-  }
-
-  const nums=parseNumbers(code);
-
-  if(validNumbers(nums)){
-   rows.push({
-    issue:issue,
-    numbers:nums,
-    time:"手动导入"
-   });
-  }
- });
-
- if(!rows.length){
-  alert("没有识别到有效开奖记录。每期必须包含1至10十个不重复号码。");
-  return;
- }
-
- mergeHistory(rows);
-
- document.getElementById("manualData").value="";
-
- checkResults();
- renderAll();
-
- alert("成功导入"+rows.length+"期记录");
-}
-
-/* 导出数据 */
-function exportData(){
- const data={
-  history:history,
-  predictionsA:predA,
-  predictionsB:predB
- };
-
- const blob=new Blob(
-  [JSON.stringify(data,null,2)],
-  {type:"application/json"}
- );
-
- const url=URL.createObjectURL(blob);
-
- const a=document.createElement("a");
- a.href=url;
- a.download="极速赛车预测数据备份.json";
- a.click();
-
- URL.revokeObjectURL(url);
-}
-
-/* 清空数据 */
-function clearAll(){
- if(!confirm("确定清空全部开奖历史和两套预测记录吗？"))return;
-
- history=[];
- predA=[];
- predB=[];
- current=null;
-
- saveAll();
- renderAll();
-
- document.getElementById("historyCount").textContent="0";
- document.getElementById("numberA").textContent="--";
- document.getElementById("numberB").textContent="--";
- document.getElementById("topA").textContent="--";
- document.getElementById("topB").textContent="--";
-
- document.getElementById("historyStatus").textContent="数据已清空";
- document.getElementById("recentStatus").textContent="等待历史数据同步";
-}
-
-/* 启动 */
-async function start(){
- history=readStore(KEYS.history);
- predA=readStore(KEYS.predA);
- predB=readStore(KEYS.predB);
-
- renderAll();
-
- await loadHistory();
- await refreshAll();
+  // 每5分钟重新同步历史数据。
+  setInterval(() => {
+    loadHistory().then(() => {
+      checkResults();
+      saveLocal();
+      renderAll();
+    });
+  }, 300000);
 }
 
 start();
-
-/* 每30秒检查最新开奖 */
-setInterval(()=>{
- if(!document.hidden){
-  refreshAll();
- }
-},30000);
-
-/* 每5分钟补充同步历史数据 */
-setInterval(()=>{
- if(!document.hidden){
-  loadHistory();
- }
-},5*60*1000);
-
-/* 切回页面立即检查 */
-document.addEventListener("visibilitychange",()=>{
- if(!document.hidden){
-  refreshAll();
-  loadHistory();
- }
-});
-
 </script>
 </body>
 </html>
