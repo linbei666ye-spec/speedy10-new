@@ -8,102 +8,127 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;padding:14px;background:#101827;color:#edf2f7;font-family:Arial,"Microsoft YaHei",sans-serif}
-.container{max-width:650px;margin:auto}
-h1{text-align:center;font-size:23px;color:#facc15}
-.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:18px}
+.container{max-width:700px;margin:auto}
+h1{text-align:center;color:#facc15;font-size:23px}
+.sub{text-align:center;color:#94a3b8;font-size:12px;margin-bottom:16px}
 .card{background:#1b293b;border:1px solid #304158;border-radius:13px;padding:14px;margin-bottom:13px}
 h2{font-size:17px;margin:0 0 12px}
+h3{font-size:14px;margin:12px 0 8px;color:#cbd5e1}
 .status,.muted,.notice{font-size:12px;color:#a5b4c8;line-height:1.8}
-.green{color:#4ade80}.gold{color:#facc15}.red{color:#f87171}
+button{border:0;border-radius:9px;padding:11px 13px;font-size:13px;font-weight:bold;background:#3b82f6;color:white;margin:5px 3px 0 0}
+button.secondary{background:#475569}
+button.active{background:#facc15;color:#241b00}
+button.danger{background:#b45353}
+select{width:100%;padding:11px;margin:8px 0;background:#26374e;color:white;border-radius:8px;border:1px solid #475569}
+.page{display:none}.page.show{display:block}
 .numbers{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px}
-.num{background:#26374e;border-radius:9px;text-align:center;padding:12px 2px;font-size:20px;font-weight:bold}
+.num{background:#26374e;border-radius:9px;text-align:center;padding:11px 2px;font-size:20px;font-weight:bold}
 .num.first{background:#facc15;color:#241b00}
 .num small{display:block;font-size:10px;font-weight:normal;margin-bottom:4px}
-button{border:0;border-radius:9px;padding:12px 14px;font-size:14px;font-weight:bold;background:#3b82f6;color:white;margin:7px 3px 0 0}
-button.secondary{background:#475569}
-button.danger{background:#b45353}
-button.active{background:#facc15;color:#241b00}
-.history-item{padding:12px 0;border-bottom:1px solid #34445a}
-.history-head{font-size:12px;color:#94a3b8;margin-bottom:7px}
-.history-line{font-size:19px;font-weight:bold;letter-spacing:1px;word-break:break-word}
-.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;text-align:center}
-.stat{background:#26374e;padding:12px 4px;border-radius:9px}
-.stat strong{display:block;font-size:23px;color:#facc15}
+.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+.stat{background:#26374e;padding:12px 5px;border-radius:9px;text-align:center}
+.stat strong{display:block;font-size:22px;color:#facc15}
 .stat span{font-size:11px;color:#a5b4c8}
+.item{padding:11px 0;border-bottom:1px solid #34445a}
+.item:last-child{border:0}
+.item-head{font-size:12px;color:#94a3b8;margin-bottom:6px}
+.bar{height:8px;background:#334155;border-radius:10px;overflow:hidden;margin-top:6px}
+.bar i{display:block;height:100%;background:#eab308}
+.green{color:#4ade80}.gold{color:#facc15}.red{color:#f87171}
 .empty{color:#94a3b8;font-size:13px;padding:10px 0}
-select{width:100%;padding:12px;margin:10px 0;background:#26374e;color:white;border-radius:8px;border:1px solid #475569}
-.page{display:none}.page.show{display:block}
+.tag{display:inline-block;background:#334155;border-radius:6px;padding:4px 7px;font-size:11px;margin:3px}
+table{width:100%;border-collapse:collapse;font-size:12px}
+td,th{padding:9px 5px;border-bottom:1px solid #34445a;text-align:center}
+th{color:#facc15}
 </style>
 </head>
 <body>
 <div class="container">
 <h1>极速赛车数据分析助手</h1>
-<div class="sub">实时开奖 · 历史记录 · 数字统计</div>
+<div class="sub">实时开奖 · 历史记录 · 十种数据分析方法</div>
 
 <div class="card">
-<h2>分析功能切换</h2>
-<button id="tabThree" class="active" onclick="showPage('three')">前三名分析</button>
-<button id="tabFirst" class="secondary" onclick="showPage('first')">第一名 TOP 7</button>
+<h2>功能切换</h2>
+<button id="btnThree" class="active" onclick="showPage('three')">前三名分析</button>
+<button id="btnFirst" class="secondary" onclick="showPage('first')">第一名 TOP 7</button>
 </div>
 
 <div class="card">
-<h2>实时开奖数据</h2>
-<div class="status" id="status">正在连接开奖数据……</div>
+<h2>实时开奖</h2>
+<div id="status" class="status">正在连接开奖数据……</div>
 <div id="latest"></div>
 <button onclick="refreshAll()">立即刷新</button>
-<button class="secondary" onclick="openSource()">打开最新开奖网站</button>
+<button class="secondary" onclick="openSource()">打开开奖网站</button>
 </div>
 
-<div class="page show" id="threePage">
+<div id="threePage" class="page show">
 <div class="card">
-<h2>前三名数字历史频次</h2>
-<div class="muted">统计数字在每期前三名出现的次数。</div>
-<select id="periodSelect" onchange="renderStats()">
+<h2>前三名历史分析</h2>
+<div class="muted">分别统计第一、第二、第三名的历史数字分布。</div>
+<label>选择名次</label>
+<select id="positionSelect" onchange="renderPosition()">
+<option value="0">第一名</option>
+<option value="1">第二名</option>
+<option value="2">第三名</option>
+</select>
+<label>统计期数</label>
+<select id="threePeriod" onchange="renderPosition()">
 <option value="10">最近10期</option>
 <option value="20" selected>最近20期</option>
 <option value="30">最近30期</option>
 <option value="40">最近40期</option>
 <option value="50">最近50期</option>
 </select>
-<div class="stats" id="stats"></div>
+<div id="positionStats"></div>
+</div>
+
+<div class="card">
+<h2>前三名综合历史分析</h2>
+<div id="threeSummary"></div>
 </div>
 </div>
 
-<div class="page" id="firstPage">
+<div id="firstPage" class="page">
 <div class="card">
-<h2>第一名历史数字 TOP 7</h2>
-<div class="muted">根据已开奖历史数据统计第一名出现次数最多的7个数字。</div>
-<select id="firstPeriod" onchange="renderFirstTop7()">
+<h2>第一名历史 TOP 7</h2>
+<div class="muted">按第一名历史出现次数排序，显示次数及历史占比。</div>
+<select id="firstPeriod" onchange="renderFirst()">
 <option value="10">最近10期</option>
 <option value="20" selected>最近20期</option>
 <option value="30">最近30期</option>
 <option value="40">最近40期</option>
 <option value="50">最近50期</option>
 </select>
-<div id="firstTop7"></div>
+<div id="firstStats"></div>
+</div>
 </div>
 
 <div class="card">
-<h2>每期 TOP 7 历史参考核对</h2>
-<div class="muted">保存每次统计时的 TOP 7，开奖后核对实际第一名是否在其中。</div>
-<div id="auditSummary"></div>
-<div id="auditList"></div>
-</div>
+<h2>十种历史分析方法</h2>
+<div class="muted">以下方法用于描述已发生的数据，不代表下一期真实概率。</div>
+<select id="methodPeriod" onchange="renderMethods()">
+<option value="10">最近10期</option>
+<option value="20" selected>最近20期</option>
+<option value="30">最近30期</option>
+<option value="40">最近40期</option>
+<option value="50">最近50期</option>
+</select>
+<div id="methods"></div>
 </div>
 
 <div class="card">
 <h2>历史开奖记录</h2>
-<div class="muted" id="historyStatus">等待获取历史数据……</div>
+<div id="historyStatus" class="muted">等待获取历史数据……</div>
 <div id="historyList"></div>
 </div>
 
 <div class="card">
 <h2>数据管理</h2>
 <button class="secondary" onclick="exportData()">导出数据备份</button>
-<button class="secondary" onclick="document.getElementById('importFile').click()">导入数据备份</button>
-<input id="importFile" type="file" accept=".json,application/json" style="display:none" onchange="importData(event)">
-<button class="danger" onclick="clearRecords()">清空本机开奖记录</button>
-<div class="notice">数据保存在本机浏览器，建议定期导出备份。</div>
+<button class="secondary" onclick="document.getElementById('importFile').click()">导入备份</button>
+<input id="importFile" type="file" accept=".json,application/json" hidden onchange="importData(event)">
+<button class="danger" onclick="clearRecords()">清空本机数据</button>
+<div class="notice">数据保存在当前浏览器。更换手机或清理浏览器数据前，请先导出备份。</div>
 </div>
 </div>
 
@@ -111,29 +136,28 @@ select{width:100%;padding:12px;margin:10px 0;background:#26374e;color:white;bord
 const SOURCE_URL='https://m.1689687.com/html/public/home.html';
 const API='https://speedy10-data.lin-bei666ye.workers.dev/';
 const STORAGE_KEY='speedy10_records_v8';
-const AUDIT_KEY='speedy10_audit_v1';
 
-let records=loadJSON(STORAGE_KEY,[]);
-let audits=loadJSON(AUDIT_KEY,[]);
+let records=loadRecords();
 let refreshing=false;
 
-function loadJSON(key,fallback){
+function loadRecords(){
  try{
-  const x=JSON.parse(localStorage.getItem(key));
-  return x===null?fallback:x;
- }catch(e){return fallback}
+  const x=JSON.parse(localStorage.getItem(STORAGE_KEY));
+  return Array.isArray(x)?x:[];
+ }catch(e){return []}
 }
-function saveAll(){
+function saveRecords(){
  localStorage.setItem(STORAGE_KEY,JSON.stringify(records));
- localStorage.setItem(AUDIT_KEY,JSON.stringify(audits));
 }
-function showPage(page){
- document.getElementById('threePage').classList.toggle('show',page==='three');
- document.getElementById('firstPage').classList.toggle('show',page==='first');
- document.getElementById('tabThree').className=page==='three'?'active':'secondary';
- document.getElementById('tabFirst').className=page==='first'?'active':'secondary';
+function openSource(){
+ window.open(SOURCE_URL,'_blank','noopener');
 }
-function openSource(){window.open(SOURCE_URL,'_blank','noopener')}
+function showPage(name){
+ document.getElementById('threePage').classList.toggle('show',name==='three');
+ document.getElementById('firstPage').classList.toggle('show',name==='first');
+ document.getElementById('btnThree').className=name==='three'?'active':'secondary';
+ document.getElementById('btnFirst').className=name==='first'?'active':'secondary';
+}
 function normalizeRecord(obj){
  if(!obj||typeof obj!=='object')return null;
  const issue=obj.preDrawIssue??obj.issue??obj.drawIssue??obj.period??obj.expect;
@@ -145,8 +169,9 @@ function normalizeRecord(obj){
 }
 function findRecords(value,out=[],depth=0){
  if(depth>10||value==null)return out;
- if(Array.isArray(value))value.forEach(v=>findRecords(v,out,depth+1));
- else if(typeof value==='object'){
+ if(Array.isArray(value)){
+  value.forEach(v=>findRecords(v,out,depth+1));
+ }else if(typeof value==='object'){
   const r=normalizeRecord(value);
   if(r)out.push(r);
   Object.values(value).forEach(v=>{
@@ -172,38 +197,11 @@ async function getJSON(url){
 function addRecord(r){
  const i=records.findIndex(x=>String(x.issue)===String(r.issue));
  if(i>=0)records[i]=r;
- else{
-  records.push(r);
-  auditPrevious(r);
- }
+ else records.push(r);
 }
 function sortRecords(){
- records.sort((a,b)=>Number(b.issue)-Number(a.issue));
+ records.sort((a,b)=>String(b.issue).localeCompare(String(a.issue),undefined,{numeric:true}));
  records=records.slice(0,500);
-}
-function getTop7(source){
- const counts=Array(11).fill(0);
- source.forEach(r=>{
-  const n=Number(r.numbers?.[0]);
-  if(n>=1&&n<=10)counts[n]++;
- });
- return Array.from({length:10},(_,i)=>i+1)
-  .sort((a,b)=>counts[b]-counts[a]||a-b)
-  .slice(0,7);
-}
-function auditPrevious(newRecord){
- const previous=audits.find(a=>a.issue===String(newRecord.issue));
- if(previous)return;
- const old=records.filter(r=>r.issue!==newRecord.issue);
- if(!old.length)return;
- const top7=getTop7(old.slice(0,20));
- audits.push({
-  issue:String(newRecord.issue),
-  reference:top7,
-  actual:Number(newRecord.numbers[0]),
-  result:top7.includes(Number(newRecord.numbers[0]))?'符合':'未符合',
-  checkedAt:new Date().toISOString()
- });
 }
 async function refreshAll(){
  if(refreshing)return;
@@ -224,77 +222,135 @@ async function refreshAll(){
    list.forEach(addRecord);
    document.getElementById('historyStatus').textContent='历史接口读取到 '+list.length+' 条记录。';
   }catch(e){
-   document.getElementById('historyStatus').textContent='历史接口暂时无法读取，保留已有记录。';
+   document.getElementById('historyStatus').textContent='历史接口暂时无法读取，保留本机已有记录。';
   }
   sortRecords();
-  saveAll();
+  saveRecords();
   status.innerHTML='<span class="green">连接成功</span> · 最新期号：'+current.issue;
   render();
  }catch(e){
   status.textContent='连接失败：'+String(e.message||e);
- }finally{refreshing=false}
+ }finally{
+  refreshing=false;
+ }
 }
-function render(){
- const latest=records[0];
- document.getElementById('latest').innerHTML=latest
- ?'<div class="muted">最新期号：'+latest.issue+'</div>'+
-  '<div class="numbers">'+latest.numbers.map((n,i)=>
-   '<div class="num '+(i===0?'first':'')+'"><small>第'+(i+1)+'名</small>'+n+'</div>'
-  ).join('')+'</div>'
+function renderLatest(){
+ const r=records[0];
+ document.getElementById('latest').innerHTML=r
+ ?'<div class="muted">最新期号：'+esc(r.issue)+'</div><div class="numbers">'+
+  r.numbers.map((n,i)=>'<div class="num '+(i===0?'first':'')+'"><small>第'+(i+1)+'名</small>'+n+'</div>').join('')+
+  '</div>'
  :'<div class="empty">暂无开奖数据</div>';
- document.getElementById('historyList').innerHTML=
-  records.slice(0,20).map(r=>
-   '<div class="history-item"><div class="history-head">第 '+r.issue+' 期</div>'+
-   '<div class="history-line">'+r.numbers.join('-')+'</div></div>'
-  ).join('')||'<div class="empty">暂无历史记录</div>';
- renderStats();
- renderFirstTop7();
- renderAudit();
 }
-function renderStats(){
- const period=Number(document.getElementById('periodSelect').value);
- const recent=records.slice(0,period);
- const counts=Array(11).fill(0);
- recent.forEach(r=>r.numbers.slice(0,3).forEach(n=>counts[n]++));
- document.getElementById('stats').innerHTML=
-  Array.from({length:10},(_,i)=>i+1).map(n=>
-   '<div class="stat"><strong>'+counts[n]+'</strong><span>数字 '+n+'</span></div>'
-  ).join('');
+function esc(s){
+ return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
-function renderFirstTop7(){
- const period=Number(document.getElementById('firstPeriod').value);
- const recent=records.slice(0,period);
+function getCounts(list,pos){
  const counts=Array(11).fill(0);
- recent.forEach(r=>{
-  const n=Number(r.numbers[0]);
+ list.forEach(r=>{
+  const n=Number(r.numbers[pos]);
   if(n>=1&&n<=10)counts[n]++;
  });
- const ranked=Array.from({length:10},(_,i)=>i+1)
-  .sort((a,b)=>counts[b]-counts[a]||a-b).slice(0,7);
- document.getElementById('firstTop7').innerHTML=
+ return counts;
+}
+function renderPosition(){
+ const pos=Number(document.getElementById('positionSelect').value);
+ const period=Number(document.getElementById('threePeriod').value);
+ const list=records.slice(0,period);
+ const counts=getCounts(list,pos);
+ const total=list.length;
+ const sorted=Array.from({length:10},(_,i)=>i+1).sort((a,b)=>counts[b]-counts[a]||a-b);
+ document.getElementById('positionStats').innerHTML=
+  '<div class="muted">已统计 '+total+' 期；该名次共 '+total+' 次记录。</div>'+
+  '<div class="grid">'+sorted.map(n=>
+   '<div class="stat"><strong>'+n+'</strong><span>出现 '+counts[n]+' 次 · '+(total?(counts[n]/total*100).toFixed(1):'0.0')+'%</span>'+
+   '<div class="bar"><i style="width:'+(total?counts[n]/total*100:0)+'%"></i></div></div>'
+  ).join('')+'</div>';
+ const top=sorted.slice(0,3);
+ document.getElementById('threeSummary').innerHTML=
+  '<div class="muted">最近 '+total+' 期中，各名次出现次数最多的数字：</div>'+
+  [0,1,2].map(p=>{
+   const c=getCounts(list,p);
+   const s=Array.from({length:10},(_,i)=>i+1).sort((a,b)=>c[b]-c[a]||a-b);
+   return '<div class="item">第'+(p+1)+'名：'+s.slice(0,3).map(n=>'<span class="tag">数字 '+n+'（'+c[n]+'次）</span>').join('')+'</div>';
+  }).join('');
+}
+function renderFirst(){
+ const period=Number(document.getElementById('firstPeriod').value);
+ const list=records.slice(0,period);
+ const counts=getCounts(list,0);
+ const ranked=Array.from({length:10},(_,i)=>i+1).sort((a,b)=>counts[b]-counts[a]||a-b).slice(0,7);
+ document.getElementById('firstStats').innerHTML=
+  '<div class="muted">已统计 '+list.length+' 期；以下为历史出现次数前7名。</div>'+
   ranked.map((n,i)=>
-   '<div class="history-item"><strong class="gold">第 '+(i+1)+' 名：</strong>'+
-   '数字 '+n+'　出现 '+counts[n]+' 次</div>'
+   '<div class="item"><strong class="gold">TOP '+(i+1)+'　数字 '+n+'</strong>'+
+   '<div class="muted">出现 '+counts[n]+' 次 · 历史占比 '+(list.length?(counts[n]/list.length*100).toFixed(1):'0.0')+'%</div>'+
+   '<div class="bar"><i style="width:'+(list.length?counts[n]/list.length*100:0)+'%"></i></div></div>'
   ).join('')||'<div class="empty">暂无数据</div>';
 }
-function renderAudit(){
- const checked=audits.filter(a=>a.result);
- const yes=checked.filter(a=>a.result==='符合').length;
- const no=checked.length-yes;
- document.getElementById('auditSummary').innerHTML=
-  '<div class="stats"><div class="stat"><strong>'+checked.length+'</strong><span>已核对期数</span></div>'+
-  '<div class="stat"><strong class="green">'+yes+'</strong><span>符合</span></div>'+
-  '<div class="stat"><strong class="red">'+no+'</strong><span>未符合</span></div></div>';
- document.getElementById('auditList').innerHTML=
-  audits.slice().reverse().slice(0,50).map(a=>
-   '<div class="history-item"><div class="history-head">第 '+a.issue+' 期</div>'+
-   '<div>参考数字：'+a.reference.join('、')+'</div>'+
-   '<div>实际第一名：'+a.actual+'</div>'+
-   '<strong class="'+(a.result==='符合'?'green':'red')+'">'+a.result+'</strong></div>'
-  ).join('')||'<div class="empty">暂无核对记录，新数据到来后自动建立记录。</div>';
+function renderMethods(){
+ const period=Number(document.getElementById('methodPeriod').value);
+ const list=records.slice(0,period);
+ const pos=0;
+ const counts=getCounts(list,pos);
+ const total=list.length;
+ const sorted=Array.from({length:10},(_,i)=>i+1).sort((a,b)=>counts[b]-counts[a]||a-b);
+ const lastSeen=Array(11).fill(-1);
+ list.forEach((r,i)=>{
+  const n=Number(r.numbers[0]);
+  if(n>=1&&n<=10&&lastSeen[n]===-1)lastSeen[n]=i;
+ });
+ const gaps=Array.from({length:10},(_,i)=>i+1).map(n=>({n,gap:lastSeen[n]}));
+ const recent5=records.slice(0,Math.min(5,records.length));
+ const old5=records.slice(5,10);
+ const recentCounts=getCounts(recent5,0);
+ const oldCounts=getCounts(old5,0);
+ const transition={};
+ for(let i=0;i<list.length-1;i++){
+  const a=list[i+1].numbers[0],b=list[i].numbers[0];
+  transition[a]=transition[a]||Array(11).fill(0);
+  transition[a][b]++;
+ }
+ const rows=[
+  ['1. 历史频率法','统计所选期数内每个数字出现次数。'],
+  ['2. 近期热度法','最近5期第一名出现较多的数字：'+Array.from({length:10},(_,i)=>i+1).sort((a,b)=>recentCounts[b]-recentCounts[a]||a-b).slice(0,3).join('、')],
+  ['3. 冷热号法','历史出现次数最多：'+sorted.slice(0,3).join('、')+'；最少：'+sorted.slice(-3).reverse().join('、')],
+  ['4. 遗漏值法','当前未出现期数最多：'+gaps.sort((a,b)=>b.gap-a.gap).slice(0,3).map(x=>'数字'+x.n+'（'+(x.gap<0?total:x.gap)+'期）').join('、')],
+  ['5. 位置分析法','分别统计第一、第二、第三名的数字分布，见前三名分析页面。'],
+  ['6. 走势分析法','最近5期与前5期频次变化最大的数字：'+Array.from({length:10},(_,i)=>i+1).sort((a,b)=>(recentCounts[b]-oldCounts[b])-(recentCounts[a]-oldCounts[a])).slice(0,3).join('、')],
+  ['7. 转移统计法','统计某个数字之后历史上出现过哪些数字；样本不足时不作结论。'],
+  ['8. 间隔分析法','按相邻两次出现之间的期数观察历史间隔；不代表固定周期。'],
+  ['9. 加权频率法','近期记录权重较高，较早记录权重逐步降低。'],
+  ['10. 综合统计法','综合频率、近期热度、遗漏和加权统计，便于比较历史数据。']
+ ];
+ let weighted=Array(11).fill(0);
+ list.forEach((r,i)=>{
+  const n=Number(r.numbers[0]);
+  if(n>=1&&n<=10)weighted[n]+=Math.max(1,total-i);
+ });
+ const weightedTop=Array.from({length:10},(_,i)=>i+1).sort((a,b)=>weighted[b]-weighted[a]||a-b).slice(0,3);
+ rows[8][1]+=' 加权统计靠前：'+weightedTop.join('、')+'。';
+ rows[9][1]+=' 当前综合频次靠前：'+sorted.slice(0,3).join('、')+'。';
+ document.getElementById('methods').innerHTML=
+  '<div class="muted">分析样本：'+total+'期第一名数据。</div>'+
+  rows.map(x=>'<div class="item"><strong>'+x[0]+'</strong><div class="muted">'+x[1]+'</div></div>').join('');
+}
+function renderHistory(){
+ document.getElementById('historyList').innerHTML=
+  records.slice(0,30).map(r=>
+   '<div class="item"><div class="item-head">第 '+esc(r.issue)+' 期</div>'+
+   '<div><strong>'+r.numbers.join(' - ')+'</strong></div></div>'
+  ).join('')||'<div class="empty">暂无历史记录</div>';
+}
+function render(){
+ renderLatest();
+ renderPosition();
+ renderFirst();
+ renderMethods();
+ renderHistory();
 }
 function exportData(){
- const blob=new Blob([JSON.stringify({records,audits},null,2)],{type:'application/json'});
+ const blob=new Blob([JSON.stringify({records},null,2)],{type:'application/json'});
  const url=URL.createObjectURL(blob);
  const a=document.createElement('a');
  a.href=url;a.download='极速赛车数据备份.json';a.click();
@@ -307,19 +363,18 @@ function importData(event){
  reader.onload=()=>{
   try{
    const data=JSON.parse(reader.result);
-   if(!Array.isArray(data.records))throw new Error('备份文件格式不正确');
-   records=data.records;
-   audits=Array.isArray(data.audits)?data.audits:[];
-   sortRecords();saveAll();render();
-   alert('数据导入成功');
+   if(!Array.isArray(data.records))throw new Error('备份格式不正确');
+   records=data.records.filter(r=>r&&Array.isArray(r.numbers)&&r.numbers.length===10);
+   sortRecords();saveRecords();render();
+   alert('导入成功，共 '+records.length+' 期');
   }catch(e){alert('导入失败：'+e.message)}
   event.target.value='';
  };
  reader.readAsText(file);
 }
 function clearRecords(){
- if(!confirm('确定清空本机保存的开奖记录和核对记录吗？'))return;
- records=[];audits=[];saveAll();render();
+ if(!confirm('确定清空本机保存的开奖记录吗？建议先导出备份。'))return;
+ records=[];saveRecords();render();
 }
 render();
 refreshAll();
