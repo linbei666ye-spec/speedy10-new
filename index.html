@@ -180,6 +180,8 @@ const MODEL_KEYS=["frequency","omission","trend","multi","adaptive"];
 let draws=[];
 let predictions=[];
 let latest=null;
+let refreshInFlight=false;
+let lastSyncTime=null;
 
 function load(key,fallback){
  try{return JSON.parse(localStorage.getItem(key))??fallback}
@@ -407,6 +409,7 @@ function makeNextPredictions(targetIssue){
 /* 按预测目标期号结算，不猜测下一条记录 */
 function settlePredictions(){
  const byIssue=new Map(draws.map(d=>[d.issue,d]));
+ let changed=false;
 
  predictions.forEach(p=>{
   if(p.result!=="pending")return;
@@ -421,10 +424,16 @@ function settlePredictions(){
 
   p.actual=d.code;
   p.settledAt=d.time;
+  changed=true;
  });
+
+ return changed;
 }
 
 async function refreshAll(){
+ if(refreshInFlight)return;
+ refreshInFlight=true;
+
  const status=document.getElementById("status");
  status.textContent="正在读取最新开奖和历史数据…";
 
@@ -458,21 +467,28 @@ async function refreshAll(){
    throw new Error("历史接口没有识别到有效开奖记录");
   }
 
+  /* 合并接口实际返回的历史记录，按期号去重 */
   mergeDraws(old);
   mergeDraws([latest]);
 
+  /* 用历史开奖自动核对已经保存的待开奖预测 */
   settlePredictions();
 
+  /* 只为接口当前公布的下一目标期创建预测，不补造过去预测 */
   makeNextPredictions(String(current.drawIssue||""));
 
   save();
+  lastSyncTime=new Date();
+
   renderAll();
 
-  status.textContent="数据连接成功 · 已读取 "+draws.length+" 期";
+  status.textContent="数据同步成功 · 已读取 "+draws.length+" 期 · 待开奖已核对";
 
  }catch(e){
   status.textContent="读取失败："+e.message+" · 可稍后重试";
   renderAll();
+ }finally{
+  refreshInFlight=false;
  }
 }
 
@@ -643,7 +659,7 @@ function renderRecords(){
 
  el.innerHTML=predictions.slice(0,100).map(p=>{
   const label=p.result==="pending"?"待开奖":
-   p.result==="hit"?"命中":"未中";
+   p.result==="hit"?"中":"挂";
 
   const cls=p.result==="hit"?"green":
    p.result==="miss"?"red":"";
@@ -676,8 +692,15 @@ function renderAll(){
 
  document.getElementById("dataCount").textContent=draws.length+"期";
 
+ const syncText=lastSyncTime
+  ?"最近同步："+lastSyncTime.toLocaleString()
+  :"尚未完成同步";
+
  document.getElementById("dataInfo").textContent=
-  "本机最多保存最近500期有效记录；首页展示最近15期。";
+  "本机最多保存最近500期有效记录；首页展示最近15期。"+
+  syncText+
+  "。重新打开或返回前台时自动同步；关闭期间网页不会后台运行。"+
+  "数据补齐以历史接口实际返回为准。";
 }
 
 function clearPredictions(){
@@ -688,13 +711,35 @@ function clearPredictions(){
  renderAll();
 }
 
+/* 页面初次打开时加载本机记录 */
 draws=load(STORE.history,[]);
 predictions=load(STORE.predictions,[]);
 
 draws=draws.map(normalizeDraw).filter(Boolean).sort(issueSort).slice(0,500);
 
 renderAll();
+
+/* 每次打开页面自动同步 */
 refreshAll();
+
+/* 从其他应用切回本页面时自动同步 */
+document.addEventListener("visibilitychange",()=>{
+ if(document.visibilityState==="visible"){
+  refreshAll();
+ }
+});
+
+/* Android WebView / 浏览器从后台恢复时同步 */
+window.addEventListener("pageshow",()=>{
+ refreshAll();
+});
+
+/* 页面保持运行且可见时，每60秒检查一次 */
+setInterval(()=>{
+ if(document.visibilityState==="visible"){
+  refreshAll();
+ }
+},60000);
 </script>
 </body>
 </html>
