@@ -1,12 +1,15 @@
+
 package com.speedy10.app;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.os.Build;
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.webkit.WebView;
 import android.webkit.WebSettings;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
-import android.view.View;
 import android.view.WindowManager;
 
 public class MainActivity extends Activity {
@@ -41,6 +44,21 @@ public class MainActivity extends Activity {
         );
 
         setContentView(webView);
+
+        requestNotificationPermission();
+        MonitorService.start(this);
+    }
+
+    private void requestNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                requestPermissions(
+                    new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                    100
+                );
+            }
+        }
     }
 
     @Override
