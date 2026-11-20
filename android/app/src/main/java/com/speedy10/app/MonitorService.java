@@ -11,6 +11,7 @@ import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.IBinder;
 
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
@@ -18,6 +19,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -30,9 +39,38 @@ public class MonitorService extends Service {
     private static final String API_URL =
             "https://speedy10-data.lin-bei666ye.workers.dev/";
 
+    private static final String HISTORY_URL =
+            API_URL + "?action=history&days=100";
+
+    private static final String PREFS = "speedy10_monitor";
+    private static final String KEY_PREDICTIONS = "predictions_json";
+    private static final String KEY_HISTORY = "history_json";
+    private static final String KEY_LATEST_ISSUE = "latest_issue";
+    private static final String KEY_LATEST_CODE = "latest_code";
+
+    private static final String[] MODEL_KEYS = {
+            "frequency",
+            "omission",
+            "trend",
+            "multi",
+            "adaptive"
+    };
+
+    private static final String[] MODEL_NAMES = {
+            "近期冷热频率",
+            "遗漏与间隔",
+            "近期走势",
+            "多周期综合",
+            "自适应加权"
+    };
+
     private ScheduledExecutorService scheduler;
 
-    // 修复：使用 Context 接收 MainActivity
+    private final Object lock = new Object();
+
+    private List<Draw> draws = new ArrayList<>();
+    private JSONArray predictions = new JSONArray();
+
     public static void start(Context context) {
         Intent intent = new Intent(context, MonitorService.class);
 
@@ -49,9 +87,11 @@ public class MonitorService extends Service {
 
         createNotificationChannel();
 
+        loadSavedData();
+
         startForeground(
                 NOTIFICATION_ID,
-                buildNotification("正在启动开奖监控…")
+                buildNotification("正在启动后台预测监控…")
         );
 
         scheduler = Executors.newSingleThreadScheduledExecutor();
@@ -64,103 +104,53 @@ public class MonitorService extends Service {
         );
     }
 
-    private void checkLatestDraw() {
+    // ==============================
+    // 网络读取
+    // ==============================
+
+    private JSONObject fetchJSON(String address) throws Exception {
+
         HttpURLConnection connection = null;
 
         try {
-            URL url = new URL(API_URL);
+            URL url = new URL(address);
+
             connection = (HttpURLConnection) url.openConnection();
 
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(15000);
-            connection.setReadTimeout(15000);
+            connection.setReadTimeout(20000);
             connection.setUseCaches(false);
+            connection.setRequestProperty(
+                    "Cache-Control",
+                    "no-cache"
+            );
 
             int status = connection.getResponseCode();
 
             if (status != 200) {
-                updateNotification("连接开奖服务器失败，稍后重试");
-                return;
+                throw new Exception("服务器返回：" + status);
             }
-
-            InputStream input = connection.getInputStream();
-
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(input, "UTF-8")
-            );
 
             StringBuilder response = new StringBuilder();
-            String line;
 
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
-            }
+            try (
+                    InputStream input = connection.getInputStream();
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(
+                                    input,
+                                    StandardCharsets.UTF_8
+                            )
+                    )
+            ) {
+                String line;
 
-            reader.close();
-            input.close();
-
-            JSONObject root = new JSONObject(response.toString());
-            JSONObject data = root;
-
-            if (root.has("result")
-                    && root.opt("result") instanceof JSONObject) {
-
-                JSONObject result = root.getJSONObject("result");
-
-                if (result.has("data")
-                        && result.opt("data") instanceof JSONObject) {
-                    data = result.getJSONObject("data");
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
                 }
-
-            } else if (root.has("data")
-                    && root.opt("data") instanceof JSONObject) {
-
-                data = root.getJSONObject("data");
             }
 
-            String issue = data.optString("preDrawIssue", "");
-            String code = data.optString("preDrawCode", "");
-
-            if (issue.isEmpty() || code.isEmpty()
-                    || "null".equals(issue)
-                    || "null".equals(code)) {
-
-                updateNotification("已连接，等待最新开奖数据");
-                return;
-            }
-
-            SharedPreferences prefs = getSharedPreferences(
-                    "speedy10_monitor",
-                    MODE_PRIVATE
-            );
-
-            String oldIssue = prefs.getString("latest_issue", "");
-
-            if (!issue.equals(oldIssue)) {
-
-                prefs.edit()
-                        .putString("latest_issue", issue)
-                        .putString("latest_code", code)
-                        .putLong(
-                                "latest_time",
-                                System.currentTimeMillis()
-                        )
-                        .apply();
-
-                updateNotification(
-                        "发现新开奖：" + issue + "  " + code
-                );
-
-            } else {
-
-                updateNotification(
-                        "监控运行中 · 最新期号：" + issue
-                );
-            }
-
-        } catch (Exception e) {
-
-            updateNotification("网络暂时不可用，正在等待重试");
+            return new JSONObject(response.toString());
 
         } finally {
 
@@ -170,21 +160,853 @@ public class MonitorService extends Service {
         }
     }
 
-    private void createNotificationChannel() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+    private JSONObject unwrapLatest(JSONObject root) {
 
-            NotificationChannel channel = new NotificationChannel(
-                    CHANNEL_ID,
-                    "Speedy10 后台开奖监控",
-                    NotificationManager.IMPORTANCE_LOW
+        JSONObject result = root.optJSONObject("result");
+
+        if (result != null) {
+            JSONObject data = result.optJSONObject("data");
+
+            if (data != null) {
+                return data;
+            }
+        }
+
+        JSONObject data = root.optJSONObject("data");
+
+        if (data != null) {
+            return data;
+        }
+
+        return root;
+    }
+
+    private JSONArray extractHistory(JSONObject root) {
+
+        JSONArray array = root.optJSONArray("data");
+
+        if (array != null) {
+            return array;
+        }
+
+        JSONObject result = root.optJSONObject("result");
+
+        if (result != null) {
+
+            array = result.optJSONArray("data");
+
+            if (array != null) {
+                return array;
+            }
+
+            JSONObject data = result.optJSONObject("data");
+
+            if (data != null) {
+                array = data.optJSONArray("list");
+
+                if (array != null) {
+                    return array;
+                }
+            }
+        }
+
+        return root.optJSONArray("list");
+    }
+
+    // ==============================
+    // 开奖数据处理
+    // ==============================
+
+    private static class Draw {
+
+        String issue;
+        String time;
+        int[] code;
+
+        Draw(String issue, String time, int[] code) {
+            this.issue = issue;
+            this.time = time;
+            this.code = code;
+        }
+    }
+
+    private int[] validCode(String value) {
+
+        if (value == null || value.isEmpty()) {
+            return null;
+        }
+
+        String[] parts = value.split("[,，\\s-]+");
+
+        if (parts.length != 10) {
+            return null;
+        }
+
+        int[] numbers = new int[10];
+        boolean[] seen = new boolean[11];
+
+        try {
+
+            for (int i = 0; i < 10; i++) {
+
+                int n = Integer.parseInt(parts[i]);
+
+                if (n < 1 || n > 10 || seen[n]) {
+                    return null;
+                }
+
+                numbers[i] = n;
+                seen[n] = true;
+            }
+
+        } catch (Exception e) {
+            return null;
+        }
+
+        return numbers;
+    }
+
+    private Draw normalizeDraw(JSONObject object) {
+
+        if (object == null) {
+            return null;
+        }
+
+        String issue = object.optString(
+                "preDrawIssue",
+                object.optString("issue", "")
+        );
+
+        String time = object.optString(
+                "preDrawTime",
+                object.optString("drawTime", "")
+        );
+
+        String code = object.optString(
+                "preDrawCode",
+                object.optString(
+                        "drawCode",
+                        object.optString("code", "")
+                )
+        );
+
+        int[] numbers = validCode(code);
+
+        if (issue.isEmpty() || numbers == null) {
+            return null;
+        }
+
+        return new Draw(issue, time, numbers);
+    }
+
+    private int compareIssue(String a, String b) {
+
+        try {
+            return new BigInteger(b).compareTo(new BigInteger(a));
+        } catch (Exception e) {
+            return b.compareTo(a);
+        }
+    }
+
+    private void mergeDraws(List<Draw> incoming) {
+
+        Map<String, Draw> map = new HashMap<>();
+
+        for (Draw d : draws) {
+            map.put(d.issue, d);
+        }
+
+        for (Draw d : incoming) {
+            map.put(d.issue, d);
+        }
+
+        List<Draw> merged = new ArrayList<>(map.values());
+
+        Collections.sort(merged, (a, b) ->
+                compareIssue(a.issue, b.issue)
+        );
+
+        if (merged.size() > 500) {
+            merged = new ArrayList<>(
+                    merged.subList(0, 500)
+            );
+        }
+
+        draws = merged;
+    }
+
+    // ==============================
+    // 五种预测算法
+    // ==============================
+
+    private double[][] scoreNumbers(
+            List<Draw> data,
+            String kind
+    ) {
+
+        int limit = kind.equals("A") ? 3 : 7;
+
+        double[][] scores = new double[11][5];
+
+        for (int n = 1; n <= 10; n++) {
+
+            List<Integer> positions = new ArrayList<>();
+
+            for (Draw d : data) {
+                int position = 10;
+
+                for (int i = 0; i < 10; i++) {
+                    if (d.code[i] == n) {
+                        position = i;
+                        break;
+                    }
+                }
+
+                positions.add(position);
+            }
+
+            double r10 = rate(positions, 10, limit);
+            double r30 = rate(positions, 30, limit);
+            double r100 = rate(positions, 100, limit);
+
+            int gap = data.size();
+
+            for (int i = 0; i < positions.size(); i++) {
+                if (positions.get(i) < limit) {
+                    gap = i;
+                    break;
+                }
+            }
+
+            double frequency =
+                    r10 * 0.5 +
+                    r30 * 0.3 +
+                    r100 * 0.2;
+
+            double omission =
+                    Math.min(gap, 30) / 30.0;
+
+            double trend = Math.max(
+                    0,
+                    Math.min(1, 0.5 + (r10 - r30))
             );
 
-            channel.setDescription("持续检查最新开奖数据");
+            double multi =
+                    r10 * 0.5 +
+                    r30 * 0.3 +
+                    r100 * 0.2;
+
+            double adaptive =
+                    frequency * 0.65 +
+                    omission * 0.15 +
+                    trend * 0.2;
+
+            scores[n][0] = frequency;
+            scores[n][1] = omission;
+            scores[n][2] = trend;
+            scores[n][3] = multi;
+            scores[n][4] = adaptive;
+        }
+
+        return scores;
+    }
+
+    private double rate(
+            List<Integer> positions,
+            int window,
+            int limit
+    ) {
+
+        int count = Math.min(window, positions.size());
+
+        if (count == 0) {
+            return 0;
+        }
+
+        int hits = 0;
+
+        for (int i = 0; i < count; i++) {
+            if (positions.get(i) < limit) {
+                hits++;
+            }
+        }
+
+        return hits / (double) count;
+    }
+
+    private int rankFor(
+            List<Draw> data,
+            String kind,
+            int model
+    ) {
+
+        double[][] scores = scoreNumbers(data, kind);
+
+        int bestNumber = 1;
+        double bestScore = scores[1][model];
+
+        for (int n = 2; n <= 10; n++) {
+
+            double score = scores[n][model];
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestNumber = n;
+            }
+        }
+
+        return bestNumber;
+    }
+
+    private static class ModelResult {
+
+        int hit;
+        int total;
+        double rate;
+        double adjusted;
+    }
+
+    private ModelResult[] testModels(
+            List<Draw> data,
+            String kind
+    ) {
+
+        double base = kind.equals("A") ? 0.30 : 0.70;
+
+        int minTrain = 30;
+
+        int maxTests = Math.min(
+                120,
+                data.size() - minTrain
+        );
+
+        ModelResult[] result = new ModelResult[5];
+
+        for (int m = 0; m < 5; m++) {
+            result[m] = new ModelResult();
+        }
+
+        for (int i = 0; i < maxTests; i++) {
+
+            List<Draw> train = data.subList(
+                    i + 1,
+                    data.size()
+            );
+
+            if (train.size() < minTrain) {
+                continue;
+            }
+
+            int[] actual = data.get(i).code;
+
+            int limit = kind.equals("A") ? 3 : 7;
+
+            for (int m = 0; m < 5; m++) {
+
+                int predicted = rankFor(train, kind, m);
+
+                boolean hit = false;
+
+                for (int j = 0; j < limit; j++) {
+                    if (actual[j] == predicted) {
+                        hit = true;
+                        break;
+                    }
+                }
+
+                result[m].total++;
+
+                if (hit) {
+                    result[m].hit++;
+                }
+            }
+        }
+
+        for (int m = 0; m < 5; m++) {
+
+            ModelResult x = result[m];
+
+            x.rate = x.total == 0
+                    ? 0
+                    : x.hit / (double) x.total;
+
+            x.adjusted = x.total == 0
+                    ? base
+                    : (x.rate * x.total + base * 30)
+                    / (x.total + 30);
+        }
+
+        return result;
+    }
+
+    private int chooseModel(
+            List<Draw> data,
+            String kind
+    ) {
+
+        ModelResult[] tests = testModels(data, kind);
+
+        int best = 0;
+
+        for (int i = 1; i < 5; i++) {
+
+            if (tests[i].adjusted > tests[best].adjusted) {
+                best = i;
+            }
+        }
+
+        return best;
+    }
+
+    // ==============================
+    // 预测记录
+    // ==============================
+
+    private boolean predictionExists(
+            String target,
+            String kind
+    ) {
+
+        for (int i = 0; i < predictions.length(); i++) {
+
+            JSONObject p = predictions.optJSONObject(i);
+
+            if (p == null) {
+                continue;
+            }
+
+            if (target.equals(p.optString("target"))
+                    && kind.equals(p.optString("kind"))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private void addPrediction(
+            String kind,
+            String target,
+            int number,
+            int model
+    ) {
+
+        try {
+
+            JSONObject p = new JSONObject();
+
+            p.put("kind", kind);
+            p.put("target", target);
+            p.put("base", draws.get(0).issue);
+            p.put("number", number);
+            p.put("model", MODEL_KEYS[model]);
+            p.put("result", "pending");
+            p.put("created", System.currentTimeMillis());
+
+            JSONArray updated = new JSONArray();
+
+            updated.put(p);
+
+            for (int i = 0; i < predictions.length(); i++) {
+                updated.put(predictions.get(i));
+            }
+
+            predictions = updated;
+
+            if (predictions.length() > 1000) {
+
+                JSONArray trimmed = new JSONArray();
+
+                for (int i = 0; i < 1000; i++) {
+                    trimmed.put(predictions.get(i));
+                }
+
+                predictions = trimmed;
+            }
+
+        } catch (Exception ignored) {
+        }
+    }
+
+    private void makeNextPredictions(String targetIssue) {
+
+        if (targetIssue == null || targetIssue.isEmpty()) {
+            return;
+        }
+
+        if (draws.size() < 30) {
+            updateNotification(
+                    "历史数据不足30期，暂不能生成预测"
+            );
+            return;
+        }
+
+        boolean needA = !predictionExists(targetIssue, "A");
+        boolean needB = !predictionExists(targetIssue, "B");
+
+        if (!needA && !needB) {
+            return;
+        }
+
+        int modelA = -1;
+        int modelB = -1;
+
+        if (needA) {
+            modelA = chooseModel(draws, "A");
+
+            int numberA = rankFor(
+                    draws,
+                    "A",
+                    modelA
+            );
+
+            addPrediction(
+                    "A",
+                    targetIssue,
+                    numberA,
+                    modelA
+            );
+        }
+
+        if (needB) {
+            modelB = chooseModel(draws, "B");
+
+            int numberB = rankFor(
+                    draws,
+                    "B",
+                    modelB
+            );
+
+            addPrediction(
+                    "B",
+                    targetIssue,
+                    numberB,
+                    modelB
+            );
+        }
+    }
+
+    // ==============================
+    // 自动结算
+    // ==============================
+
+    private boolean containsTop(
+            int[] code,
+            int number,
+            int limit
+    ) {
+
+        for (int i = 0; i < limit; i++) {
+            if (code[i] == number) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private boolean settlePredictions() {
+
+        Map<String, Draw> byIssue = new HashMap<>();
+
+        for (Draw d : draws) {
+            byIssue.put(d.issue, d);
+        }
+
+        boolean changed = false;
+
+        for (int i = 0; i < predictions.length(); i++) {
+
+            JSONObject p = predictions.optJSONObject(i);
+
+            if (p == null) {
+                continue;
+            }
+
+            if (!"pending".equals(p.optString("result"))) {
+                continue;
+            }
+
+            String target = p.optString("target");
+
+            Draw d = byIssue.get(target);
+
+            if (d == null) {
+                continue;
+            }
+
+            String kind = p.optString("kind");
+
+            int limit = kind.equals("A") ? 3 : 7;
+
+            int number = p.optInt("number", -1);
+
+            boolean hit = containsTop(
+                    d.code,
+                    number,
+                    limit
+            );
+
+            try {
+
+                p.put(
+                        "result",
+                        hit ? "hit" : "miss"
+                );
+
+                JSONArray actual = new JSONArray();
+
+                for (int n : d.code) {
+                    actual.put(n);
+                }
+
+                p.put("actual", actual);
+                p.put("settledAt", d.time);
+
+                changed = true;
+
+            } catch (Exception ignored) {
+            }
+        }
+
+        return changed;
+    }
+
+    // ==============================
+    // 本机持久化
+    // ==============================
+
+    private void loadSavedData() {
+
+        SharedPreferences prefs =
+                getSharedPreferences(PREFS, MODE_PRIVATE);
+
+        String savedPredictions =
+                prefs.getString(KEY_PREDICTIONS, "[]");
+
+        String savedHistory =
+                prefs.getString(KEY_HISTORY, "[]");
+
+        try {
+            predictions = new JSONArray(savedPredictions);
+        } catch (Exception e) {
+            predictions = new JSONArray();
+        }
+
+        try {
+
+            JSONArray array = new JSONArray(savedHistory);
+
+            List<Draw> loaded = new ArrayList<>();
+
+            for (int i = 0; i < array.length(); i++) {
+
+                JSONObject object = array.optJSONObject(i);
+
+                Draw d = normalizeDraw(object);
+
+                if (d != null) {
+                    loaded.add(d);
+                }
+            }
+
+            draws = loaded;
+
+        } catch (Exception e) {
+            draws = new ArrayList<>();
+        }
+    }
+
+    private void saveAll() {
+
+        SharedPreferences prefs =
+                getSharedPreferences(PREFS, MODE_PRIVATE);
+
+        JSONArray history = new JSONArray();
+
+        for (Draw d : draws) {
+
+            try {
+
+                JSONObject object = new JSONObject();
+
+                object.put("preDrawIssue", d.issue);
+                object.put("preDrawTime", d.time);
+
+                StringBuilder code = new StringBuilder();
+
+                for (int i = 0; i < d.code.length; i++) {
+
+                    if (i > 0) {
+                        code.append(",");
+                    }
+
+                    if (d.code[i] < 10) {
+                        code.append("0");
+                    }
+
+                    code.append(d.code[i]);
+                }
+
+                object.put("preDrawCode", code.toString());
+
+                history.put(object);
+
+            } catch (Exception ignored) {
+            }
+        }
+
+        prefs.edit()
+                .putString(
+                        KEY_PREDICTIONS,
+                        predictions.toString()
+                )
+                .putString(
+                        KEY_HISTORY,
+                        history.toString()
+                )
+                .apply();
+    }
+
+    // ==============================
+    // 每分钟执行
+    // ==============================
+
+    private void checkLatestDraw() {
+
+        synchronized (lock) {
+
+            try {
+
+                updateNotification("正在读取最新开奖和历史数据…");
+
+                JSONObject latestRoot = fetchJSON(API_URL);
+
+                JSONObject latestData = unwrapLatest(latestRoot);
+
+                String issue = latestData.optString(
+                        "preDrawIssue",
+                        ""
+                );
+
+                String code = latestData.optString(
+                        "preDrawCode",
+                        ""
+                );
+
+                String targetIssue = latestData.optString(
+                        "drawIssue",
+                        ""
+                );
+
+                String drawTime = latestData.optString(
+                        "preDrawTime",
+                        ""
+                );
+
+                int[] latestCode = validCode(code);
+
+                if (issue.isEmpty()
+                        || targetIssue.isEmpty()
+                        || latestCode == null) {
+
+                    throw new Exception("最新开奖数据格式不正确");
+                }
+
+                JSONObject historyRoot = fetchJSON(HISTORY_URL);
+
+                JSONArray historyArray = extractHistory(historyRoot);
+
+                if (historyArray == null || historyArray.length() == 0) {
+                    throw new Exception("历史开奖数据为空");
+                }
+
+                List<Draw> incoming = new ArrayList<>();
+
+                for (int i = 0; i < historyArray.length(); i++) {
+
+                    JSONObject object =
+                            historyArray.optJSONObject(i);
+
+                    Draw d = normalizeDraw(object);
+
+                    if (d != null) {
+                        incoming.add(d);
+                    }
+                }
+
+                if (incoming.isEmpty()) {
+                    throw new Exception("没有识别到有效历史记录");
+                }
+
+                // 把最新开奖也合并进历史记录
+                incoming.add(
+                        new Draw(issue, drawTime, latestCode)
+                );
+
+                mergeDraws(incoming);
+
+                // 先结算已经开奖的预测
+                boolean settled = settlePredictions();
+
+                // 再为下一期生成A、B预测
+                makeNextPredictions(targetIssue);
+
+                saveAll();
+
+                SharedPreferences prefs =
+                        getSharedPreferences(PREFS, MODE_PRIVATE);
+
+                prefs.edit()
+                        .putString(KEY_LATEST_ISSUE, issue)
+                        .putString(KEY_LATEST_CODE, code)
+                        .apply();
+
+                String message =
+                        "监控正常 · 最新期 " + issue
+                        + " · 下一期 " + targetIssue
+                        + " · 历史 " + draws.size() + "期";
+
+                if (settled) {
+                    message += " · 已完成预测结算";
+                }
+
+                updateNotification(message);
+
+            } catch (Exception e) {
+
+                updateNotification(
+                        "后台读取失败，60秒后重试"
+                );
+            }
+        }
+    }
+
+    // ==============================
+    // 通知
+    // ==============================
+
+    private void createNotificationChannel() {
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
+            NotificationChannel channel =
+                    new NotificationChannel(
+                            CHANNEL_ID,
+                            "Speedy10 后台开奖监控",
+                            NotificationManager.IMPORTANCE_LOW
+                    );
+
+            channel.setDescription(
+                    "每分钟读取开奖数据并生成A、B预测"
+            );
 
             NotificationManager manager =
                     getSystemService(NotificationManager.class);
 
-            manager.createNotificationChannel(channel);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
+            }
         }
     }
 
@@ -198,7 +1020,7 @@ public class MonitorService extends Service {
             builder = new Notification.Builder(this);
         }
 
-        builder.setContentTitle("Speedy10 监控运行中")
+        builder.setContentTitle("Speedy10 后台预测运行中")
                 .setContentText(message)
                 .setSmallIcon(android.R.drawable.ic_popup_sync)
                 .setOngoing(true);
@@ -213,10 +1035,13 @@ public class MonitorService extends Service {
                         NOTIFICATION_SERVICE
                 );
 
-        manager.notify(
-                NOTIFICATION_ID,
-                buildNotification(message)
-        );
+        if (manager != null) {
+
+            manager.notify(
+                    NOTIFICATION_ID,
+                    buildNotification(message)
+            );
+        }
     }
 
     @Override
