@@ -5,7 +5,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <meta name="theme-color" content="#101827">
-<title>SPEEDY 10 极速赛车专业分析</title>
+<title>SPEEDY 10 专业版</title>
 <style>
 :root{--bg:#0b1220;--panel:#152238;--panel2:#1c2c45;--text:#f4f7fb;--muted:#9aacc4;--green:#35d49a;--red:#ff7777;--blue:#65a9ff}
 *{box-sizing:border-box}
@@ -75,7 +75,7 @@ th{color:var(--muted);font-weight:normal}
     <div class="small" id="algoB">等待分析</div>
    </div>
   </div>
-  <div class="notice" style="margin-top:12px">预测仅供历史数据分析参考，彩票开奖结果具有随机性，不保证命中。</div>
+  <div class="notice" style="margin-top:12px">预测仅供历史数据分析参考，开奖结果具有随机性，不保证命中。</div>
  </div>
 
  <div class="card">
@@ -86,6 +86,7 @@ th{color:var(--muted);font-weight:normal}
    <div class="stat"><span>命中率</span><b id="aRate">--%</b></div>
   </div>
  </div>
+
  <div class="card">
   <h2>系统 B · 前七名独立统计</h2>
   <div class="stats">
@@ -94,11 +95,13 @@ th{color:var(--muted);font-weight:normal}
    <div class="stat"><span>命中率</span><b id="bRate">--%</b></div>
   </div>
  </div>
+
  <div class="card">
   <div class="row"><h2>最新开奖结果</h2><span class="tag" id="latestIssue">--</span></div>
   <div class="small" id="latestTime">等待数据</div>
   <div class="balls" id="latestBalls"></div>
  </div>
+
  <div class="card">
   <div class="row"><h2>数据概况</h2><span class="tag" id="dataCount">0期</span></div>
   <div class="small" id="dataInfo">尚未读取历史数据</div>
@@ -115,7 +118,7 @@ th{color:var(--muted);font-weight:normal}
 <section id="analysis" class="page">
  <div class="card">
   <h2>号码历史进入前三 / 前七频率</h2>
-  <div class="notice">统计每个号码在完整开奖记录中进入前3名或前7名的比例，不把号码出现次数误当成中奖概率。</div>
+  <div class="notice">统计每个号码在完整开奖记录中进入前3名或前7名的比例。这是历史频率，不是保证中奖的真实概率。</div>
   <div id="numberAnalysis"></div>
  </div>
  <div class="card">
@@ -127,7 +130,7 @@ th{color:var(--muted);font-weight:normal}
 <section id="arena" class="page">
  <div class="card">
   <h2>五种算法擂台 · 系统 A</h2>
-  <div class="notice">按历史滚动回测表现比较算法；每次回测只使用目标期之前的数据。</div>
+  <div class="notice">滚动回测每一期只使用该期之前的历史数据。</div>
   <div id="arenaA"></div>
  </div>
  <div class="card">
@@ -136,7 +139,7 @@ th{color:var(--muted);font-weight:normal}
  </div>
  <div class="card">
   <h2>理论随机基线</h2>
-  <div class="notice">在1～10随机排列且每个数字各出现一次的假设下，单个数字进入前三名的理论概率约30%，进入前七名约70%。实际历史表现不代表未来保证。</div>
+  <div class="notice">假设每期1～10随机排列，单个号码进入前三名的理论概率约30%，进入前七名约70%。</div>
  </div>
 </section>
 
@@ -160,300 +163,536 @@ th{color:var(--muted);font-weight:normal}
 <script>
 const API="https://speedy10-data.lin-bei666ye.workers.dev/";
 const HISTORY_API=API+"?action=history&days=100";
+
 const STORE={
  history:"speedy10_pro_history_v1",
  predictions:"speedy10_pro_predictions_v1"
 };
+
 const COLORS={
  1:"#E74C3C",2:"#3498DB",3:"#27AE60",4:"#F39C12",5:"#9B59B6",
  6:"#16A085",7:"#E84393",8:"#795548",9:"#34495E",10:"#607D8B"
 };
+
 const NAMES=["近期冷热频率","遗漏与间隔","近期走势","多周期综合","自适应加权"];
-let draws=[],predictions=[],latest=null;
+const MODEL_KEYS=["frequency","omission","trend","multi","adaptive"];
+
+let draws=[];
+let predictions=[];
+let latest=null;
 
 function load(key,fallback){
- try{return JSON.parse(localStorage.getItem(key))??fallback}catch(e){return fallback}
+ try{return JSON.parse(localStorage.getItem(key))??fallback}
+ catch(e){return fallback}
 }
+
 function save(){
  localStorage.setItem(STORE.history,JSON.stringify(draws.slice(0,500)));
  localStorage.setItem(STORE.predictions,JSON.stringify(predictions.slice(0,1000)));
 }
-function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+
+function esc(s){
+ return String(s??"").replace(/[&<>"']/g,c=>({
+  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
+ }[c]));
+}
+
 function ball(n){
  return `<span class="ball" style="background:${COLORS[n]}">${n}</span>`;
 }
+
 function validCode(code){
- let a=Array.isArray(code)?code.map(Number):String(code||"").split(/[,，\s-]+/).filter(Boolean).map(Number);
- if(a.length!==10||a.some(n=>!Number.isInteger(n)||n<1||n>10)||new Set(a).size!==10)return null;
+ let a=Array.isArray(code)
+  ?code.map(Number)
+  :String(code||"").split(/[,，\s-]+/).filter(Boolean).map(Number);
+
+ if(a.length!==10)return null;
+ if(a.some(n=>!Number.isInteger(n)||n<1||n>10))return null;
+ if(new Set(a).size!==10)return null;
  return a;
 }
+
 function normalizeDraw(x){
  if(!x||typeof x!=="object")return null;
  const code=validCode(x.preDrawCode??x.drawCode??x.code);
  const issue=String(x.preDrawIssue??x.issue??"");
  if(!code||!issue)return null;
- return {issue,time:String(x.preDrawTime??x.drawTime??""),code};
+
+ return {
+  issue,
+  time:String(x.preDrawTime??x.drawTime??""),
+  code
+ };
 }
+
 function unwrapLatest(j){
- let candidates=[j,j?.result,j?.result?.data,j?.data];
+ const candidates=[j,j?.result,j?.result?.data,j?.data];
  for(const x of candidates){
   if(x?.preDrawIssue&&x?.preDrawCode)return x;
  }
  return null;
 }
+
 function extractHistory(j){
- let arr=Array.isArray(j?.data)?j.data:
-  Array.isArray(j?.result?.data)?j.result.data:
-  Array.isArray(j?.result?.data?.list)?j.result.data.list:
-  Array.isArray(j?.list)?j.list:[];
+ let arr=[];
+
+ if(Array.isArray(j?.data))arr=j.data;
+ else if(Array.isArray(j?.result?.data))arr=j.result.data;
+ else if(Array.isArray(j?.result?.data?.list))arr=j.result.data.list;
+ else if(Array.isArray(j?.list))arr=j.list;
+
  return arr.map(normalizeDraw).filter(Boolean);
 }
+
 function issueSort(a,b){
- let x=Number(a.issue),y=Number(b.issue);
- return Number.isFinite(x)&&Number.isFinite(y)?y-x:b.issue.localeCompare(a.issue);
+ const x=Number(a.issue),y=Number(b.issue);
+ if(Number.isFinite(x)&&Number.isFinite(y))return y-x;
+ return b.issue.localeCompare(a.issue);
 }
+
 function mergeDraws(list){
  const map=new Map();
- [...draws,...list].forEach(d=>map.set(d.issue,d));
+
+ [...draws,...list].forEach(d=>{
+  map.set(d.issue,d);
+ });
+
  draws=[...map.values()].sort(issueSort).slice(0,500);
 }
+
 async function fetchJSON(url){
  const r=await fetch(url,{cache:"no-store"});
  if(!r.ok)throw new Error("网络请求失败："+r.status);
  return await r.json();
 }
+
+/* 每个号码在不同时间窗口的历史表现 */
+function scoreNumbers(data,kind){
+ const limit=kind==="A"?3:7;
+ const out={};
+
+ for(let n=1;n<=10;n++){
+  const positions=data.map(d=>d.code.indexOf(n));
+
+  const rate=(arr)=>{
+   if(!arr.length)return 0;
+   return arr.filter(p=>p<limit).length/arr.length;
+  };
+
+  const r10=rate(positions.slice(0,10));
+  const r30=rate(positions.slice(0,30));
+  const r100=rate(positions.slice(0,100));
+
+  const last=positions.findIndex(p=>p<limit);
+  const gap=last<0?data.length:last;
+
+  const frequency=r10*.5+r30*.3+r100*.2;
+  const omission=Math.min(gap,30)/30;
+  const trend=Math.max(0,Math.min(1,.5+(r10-r30)));
+  const multi=r10*.5+r30*.3+r100*.2;
+  const adaptive=frequency*.65+omission*.15+trend*.2;
+
+  out[n]={frequency,omission,trend,multi,adaptive};
+ }
+
+ return out;
+}
+
+function rankFor(data,kind,model){
+ const scores=scoreNumbers(data,kind);
+
+ return Object.keys(scores).map(Number).sort((a,b)=>
+  scores[b][model]-scores[a][model]||a-b
+ )[0];
+}
+
+/*
+ * 正确的滚动回测：
+ * draws[0]是最新一期，数组越后面越旧。
+ * 预测第i期时，只能使用data.slice(i+1)这些更早的记录。
+ */
+function testModels(data,kind){
+ const base=kind==="A"?.30:.70;
+ const minTrain=30;
+ const maxTests=Math.min(120,data.length-minTrain);
+
+ const result={};
+
+ MODEL_KEYS.forEach(m=>{
+  result[m]={hit:0,total:0,rate:0,adjusted:0};
+ });
+
+ for(let i=0;i<maxTests;i++){
+  const train=data.slice(i+1);
+
+  if(train.length<minTrain)continue;
+
+  const actual=data[i].code;
+  const actualTop=actual.slice(0,kind==="A"?3:7);
+
+  MODEL_KEYS.forEach(m=>{
+   const predicted=rankFor(train,kind,m);
+   const hit=actualTop.includes(predicted);
+
+   result[m].hit+=hit?1:0;
+   result[m].total++;
+  });
+ }
+
+ MODEL_KEYS.forEach(m=>{
+  const x=result[m];
+  x.rate=x.total?x.hit/x.total:0;
+
+  /* 小样本向理论基线收缩，避免短期成绩过度影响选择 */
+  x.adjusted=x.total
+   ?(x.rate*x.total+base*30)/(x.total+30)
+   :base;
+ });
+
+ return result;
+}
+
+function chooseModel(data,kind){
+ const tests=testModels(data,kind);
+ let best=MODEL_KEYS[0];
+
+ MODEL_KEYS.forEach(m=>{
+  if(tests[m].adjusted>tests[best].adjusted){
+   best=m;
+  }
+ });
+
+ return {model:best,tests};
+}
+
+/* 每个目标期只创建一次预测 */
+function makeNextPredictions(targetIssue){
+ if(!targetIssue||draws.length<30)return;
+
+ const existsA=predictions.some(
+  p=>p.target===targetIssue&&p.kind==="A"
+ );
+ const existsB=predictions.some(
+  p=>p.target===targetIssue&&p.kind==="B"
+ );
+
+ const a=chooseModel(draws,"A");
+ const b=chooseModel(draws,"B");
+
+ if(!existsA){
+  predictions.unshift({
+   kind:"A",
+   target:targetIssue,
+   base:draws[0].issue,
+   number:rankFor(draws,"A",a.model),
+   model:a.model,
+   result:"pending",
+   created:new Date().toISOString()
+  });
+ }
+
+ if(!existsB){
+  predictions.unshift({
+   kind:"B",
+   target:targetIssue,
+   base:draws[0].issue,
+   number:rankFor(draws,"B",b.model),
+   model:b.model,
+   result:"pending",
+   created:new Date().toISOString()
+  });
+ }
+}
+
+/* 按预测目标期号结算，不猜测下一条记录 */
+function settlePredictions(){
+ const byIssue=new Map(draws.map(d=>[d.issue,d]));
+
+ predictions.forEach(p=>{
+  if(p.result!=="pending")return;
+
+  const d=byIssue.get(p.target);
+  if(!d)return;
+
+  const limit=p.kind==="A"?3:7;
+
+  p.result=d.code.slice(0,limit).includes(Number(p.number))
+   ?"hit":"miss";
+
+  p.actual=d.code;
+  p.settledAt=d.time;
+ });
+}
+
 async function refreshAll(){
  const status=document.getElementById("status");
  status.textContent="正在读取最新开奖和历史数据…";
+
  try{
-  const results=await Promise.all([fetchJSON(API),fetchJSON(HISTORY_API)]);
+  const results=await Promise.all([
+   fetchJSON(API),
+   fetchJSON(HISTORY_API)
+  ]);
+
   const current=unwrapLatest(results[0]);
-  if(!current)throw new Error("最新开奖数据格式无法识别");
+
+  if(!current){
+   throw new Error("最新开奖数据格式无法识别");
+  }
+
+  const latestCode=validCode(current.preDrawCode);
+
+  if(!latestCode){
+   throw new Error("最新开奖号码格式不正确");
+  }
+
   latest={
    issue:String(current.preDrawIssue),
    time:String(current.preDrawTime||""),
-   code:validCode(current.preDrawCode)
+   code:latestCode
   };
-  if(!latest.code)throw new Error("最新开奖号码格式不正确");
+
   const old=extractHistory(results[1]);
-  if(!old.length)throw new Error("历史接口没有识别到有效开奖记录");
+
+  if(!old.length){
+   throw new Error("历史接口没有识别到有效开奖记录");
+  }
+
   mergeDraws(old);
   mergeDraws([latest]);
+
   settlePredictions();
+
   makeNextPredictions(String(current.drawIssue||""));
+
   save();
   renderAll();
+
   status.textContent="数据连接成功 · 已读取 "+draws.length+" 期";
+
  }catch(e){
   status.textContent="读取失败："+e.message+" · 可稍后重试";
   renderAll();
  }
 }
-function windowRate(data,n,k){
- let a=data.slice(0,n);
- if(!a.length)return 0;
- return a.reduce((s,d)=>s+(d.code.indexOf(k)<3?1:0),0)/a.length;
-}
-function scoreNumbers(data,kind){
- let out={};
- for(let n=1;n<=10;n++){
-  const pos=data.map(d=>d.code.indexOf(n));
-  const rate=(arr,limit)=>arr.length?arr.filter(p=>p<limit).length/arr.length:0;
-  const last=pos.findIndex(p=>p< (kind==="A"?3:7));
-  const gap=last<0?data.length:last;
-  const recent=pos.slice(0,10),mid=pos.slice(0,30),long=pos.slice(0,100);
-  const r10=rate(recent,kind==="A"?3:7),r30=rate(mid,kind==="A"?3:7),r100=rate(long,kind==="A"?3:7);
-  const trend=r10-r30;
-  const freq=(r10*.5+r30*.3+r100*.2);
-  const omission=Math.min(gap,30)/30;
-  const trendScore=Math.max(0,Math.min(1,.5+trend));
-  const multi=r10*.5+r30*.3+r100*.2;
-  const adaptive=freq*.65+omission*.15+trendScore*.2;
-  out[n]={
-   frequency:freq,
-   omission:omission,
-   trend:trendScore,
-   multi:multi,
-   adaptive:adaptive
-  };
- }
- return out;
-}
-const MODEL_KEYS=["frequency","omission","trend","multi","adaptive"];
-function rankFor(data,kind,model){
- const scores=scoreNumbers(data,kind);
- return Object.keys(scores).map(Number).sort((a,b)=>
-  scores[b][model]-scores[a][model]||a-b
- )[0];
-}
-function testModels(data,kind){
- const base=kind==="A"?.30:.70;
- const minTrain=30;
- const maxTests=Math.min(120,data.length-minTrain);
- let result={};
- MODEL_KEYS.forEach(m=>result[m]={hit:0,total:0,rate:0,adjusted:0});
- for(let step=maxTests;step>0;step--){
-  const i=data.length-step;
-  if(i<minTrain)continue;
-  const train=data.slice(0,i);
-  const actual=data[i].code;
-  MODEL_KEYS.forEach(m=>{
-   const n=rankFor(train,kind,m);
-   const hit=actual.slice(0,kind==="A"?3:7).includes(n);
-   result[m].hit+=hit?1:0;
-   result[m].total++;
-  });
- }
- MODEL_KEYS.forEach(m=>{
-  const x=result[m];
-  x.rate=x.total?x.hit/x.total:0;
-  // 小样本向理论基线收缩，减少短期偶然波动影响
-  x.adjusted=x.total?(x.rate*x.total+base*30)/(x.total+30):base;
- });
- return result;
-}
-function chooseModel(data,kind){
- const tests=testModels(data,kind);
- let best=MODEL_KEYS[0];
- MODEL_KEYS.forEach(m=>{
-  if(tests[m].adjusted>tests[best].adjusted)best=m;
- });
- return {model:best,tests};
-}
-function makeNextPredictions(targetIssue){
- if(!targetIssue||draws.length<30)return;
- const existsA=predictions.some(p=>p.target===targetIssue&&p.kind==="A");
- const existsB=predictions.some(p=>p.target===targetIssue&&p.kind==="B");
- const a=chooseModel(draws,"A"),b=chooseModel(draws,"B");
- if(!existsA){
-  predictions.unshift({kind:"A",target:targetIssue,base:draws[0].issue,
-   number:rankFor(draws,"A",a.model),model:a.model,result:"pending",created:new Date().toISOString()});
- }
- if(!existsB){
-  predictions.unshift({kind:"B",target:targetIssue,base:draws[0].issue,
-   number:rankFor(draws,"B",b.model),model:b.model,result:"pending",created:new Date().toISOString()});
- }
- window.currentModels={a,b};
-}
-function settlePredictions(){
- const byIssue=new Map(draws.map(d=>[d.issue,d]));
- predictions.forEach(p=>{
-  if(p.result!=="pending")return;
-  const d=byIssue.get(p.target);
-  if(!d)return;
-  const limit=p.kind==="A"?3:7;
-  p.result=d.code.slice(0,limit).includes(Number(p.number))?"hit":"miss";
-  p.actual=d.code;
-  p.settledAt=d.time;
- });
-}
+
 function stats(kind){
- const list=predictions.filter(p=>p.kind===kind&&p.result!=="pending");
+ const list=predictions.filter(
+  p=>p.kind===kind&&p.result!=="pending"
+ );
+
  const hit=list.filter(p=>p.result==="hit").length;
  const miss=list.filter(p=>p.result==="miss").length;
- return {hit,miss,rate:hit+miss?hit/(hit+miss)*100:null};
+
+ return {
+  hit,
+  miss,
+  rate:hit+miss?hit/(hit+miss)*100:null
+ };
 }
+
 function showPage(id,btn){
  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));
  document.getElementById(id).classList.add("active");
+
  document.querySelectorAll("nav button").forEach(x=>x.classList.remove("active"));
  btn.classList.add("active");
 }
+
 function renderStats(){
  for(const k of ["A","B"]){
-  const s=stats(k),prefix=k.toLowerCase();
+  const s=stats(k);
+  const prefix=k.toLowerCase();
+
   document.getElementById(prefix+"Hit").textContent=s.hit;
   document.getElementById(prefix+"Miss").textContent=s.miss;
-  document.getElementById(prefix+"Rate").textContent=s.rate===null?"--%":s.rate.toFixed(1)+"%";
+
+  document.getElementById(prefix+"Rate").textContent=
+   s.rate===null?"--%":s.rate.toFixed(1)+"%";
  }
 }
+
 function renderLatest(){
  if(!latest)return;
+
  document.getElementById("latestIssue").textContent=latest.issue;
  document.getElementById("latestTime").textContent=latest.time;
  document.getElementById("latestBalls").innerHTML=latest.code.map(ball).join("");
 }
+
 function renderPred(){
  const a=predictions.find(p=>p.kind==="A"&&p.result==="pending");
  const b=predictions.find(p=>p.kind==="B"&&p.result==="pending");
+
  document.getElementById("predA").textContent=a?a.number:"--";
  document.getElementById("predB").textContent=b?b.number:"--";
- document.getElementById("algoA").textContent=a?"算法："+(NAMES[MODEL_KEYS.indexOf(a.model)]):"等待至少30期有效数据";
- document.getElementById("algoB").textContent=b?"算法："+(NAMES[MODEL_KEYS.indexOf(b.model)]):"等待至少30期有效数据";
- document.getElementById("targetIssue").textContent=a?"目标期："+a.target:"等待预测期号";
+
+ document.getElementById("algoA").textContent=
+  a?"算法："+NAMES[MODEL_KEYS.indexOf(a.model)]:"等待至少30期有效数据";
+
+ document.getElementById("algoB").textContent=
+  b?"算法："+NAMES[MODEL_KEYS.indexOf(b.model)]:"等待至少30期有效数据";
+
+ document.getElementById("targetIssue").textContent=
+  a?"目标期："+a.target:"等待预测期号";
 }
+
 function renderHistory(){
  const el=document.getElementById("historyList");
- if(!draws.length){el.textContent="暂无有效开奖记录";return}
+
+ if(!draws.length){
+  el.textContent="暂无有效开奖记录";
+  return;
+ }
+
  el.innerHTML=draws.slice(0,15).map(d=>`
   <div class="draw">
-   <div class="drawhead"><b>第${esc(d.issue)}期</b><span>${esc(d.time)}</span></div>
+   <div class="drawhead">
+    <b>第${esc(d.issue)}期</b>
+    <span>${esc(d.time)}</span>
+   </div>
    <div class="balls">${d.code.map(ball).join("")}</div>
-  </div>`).join("");
+  </div>
+ `).join("");
 }
+
 function renderAnalysis(){
  if(!draws.length)return;
+
  let html="";
+
  for(let n=1;n<=10;n++){
   const r3=draws.filter(d=>d.code.indexOf(n)<3).length;
   const r7=draws.filter(d=>d.code.indexOf(n)<7).length;
-  const p3=r3/draws.length*100,p7=r7/draws.length*100;
-  html+=`<div style="margin:12px 0">
-   <div class="row"><span>${ball(n)}　号码 ${n}</span><span class="small">前三 ${p3.toFixed(1)}% · 前七 ${p7.toFixed(1)}%</span></div>
-   <div class="progress"><i style="width:${p3}%"></i></div>
-  </div>`;
+
+  const p3=r3/draws.length*100;
+  const p7=r7/draws.length*100;
+
+  html+=`
+   <div style="margin:12px 0">
+    <div class="row">
+     <span>${ball(n)}　号码 ${n}</span>
+     <span class="small">前三 ${p3.toFixed(1)}% · 前七 ${p7.toFixed(1)}%</span>
+    </div>
+    <div class="progress"><i style="width:${p3}%"></i></div>
+   </div>
+  `;
  }
+
  document.getElementById("numberAnalysis").innerHTML=html;
+
  const gaps=[];
+
  for(let n=1;n<=10;n++){
   const gap=draws.findIndex(d=>d.code.indexOf(n)<7);
   gaps.push({n,gap:gap<0?draws.length:gap});
  }
+
  document.getElementById("omissionAnalysis").innerHTML=gaps.map(x=>
-  `<div class="row" style="padding:7px 0">${ball(x.n)}<span>进入前七遗漏 <b>${x.gap}</b> 期</span></div>`
+  `<div class="row" style="padding:7px 0">
+   ${ball(x.n)}
+   <span>进入前七遗漏 <b>${x.gap}</b> 期</span>
+  </div>`
  ).join("");
 }
+
 function renderArena(){
  if(draws.length<35){
-  document.getElementById("arenaA").innerHTML='<div class="empty">至少需要35期有效开奖记录才能进行初步回测</div>';
-  document.getElementById("arenaB").innerHTML='<div class="empty">数据不足</div>';return;
+  document.getElementById("arenaA").innerHTML=
+   '<div class="empty">至少需要35期有效开奖记录才能进行初步回测</div>';
+
+  document.getElementById("arenaB").innerHTML=
+   '<div class="empty">数据不足</div>';
+
+  return;
  }
+
  for(const kind of ["A","B"]){
-  const test=testModels(draws,kind),el=document.getElementById(kind==="A"?"arenaA":"arenaB");
+  const test=testModels(draws,kind);
+  const el=document.getElementById(kind==="A"?"arenaA":"arenaB");
+
   el.innerHTML=MODEL_KEYS.map((m,i)=>{
-   const x=test[m],base=kind==="A"?30:70;
-   return `<div style="padding:10px 0;border-bottom:1px solid #293950">
-    <div class="row"><b>${NAMES[i]}</b><span>${(x.rate*100).toFixed(1)}%</span></div>
-    <div class="progress"><i style="width:${Math.min(100,x.rate*100)}%"></i></div>
-    <div class="small">命中 ${x.hit} / 回测 ${x.total} · 理论基线 ${base}%</div>
-   </div>`;
+   const x=test[m];
+   const base=kind==="A"?30:70;
+
+   return `
+    <div style="padding:10px 0;border-bottom:1px solid #293950">
+     <div class="row">
+      <b>${NAMES[i]}</b>
+      <span>${(x.rate*100).toFixed(1)}%</span>
+     </div>
+     <div class="progress">
+      <i style="width:${Math.min(100,x.rate*100)}%"></i>
+     </div>
+     <div class="small">
+      命中 ${x.hit} / 回测 ${x.total} · 理论基线 ${base}%
+     </div>
+    </div>
+   `;
   }).join("");
  }
 }
+
 function renderRecords(){
  const el=document.getElementById("recordList");
- if(!predictions.length){el.textContent="暂无预测记录";return}
+
+ if(!predictions.length){
+  el.textContent="暂无预测记录";
+  return;
+ }
+
  el.innerHTML=predictions.slice(0,100).map(p=>{
-  const label=p.result==="pending"?"待开奖":p.result==="hit"?"命中":"未中";
-  const cls=p.result==="hit"?"green":p.result==="miss"?"red":"";
-  return `<div class="draw">
-   <div class="row"><b>系统 ${p.kind} · 第${esc(p.target)}期</b><span class="${cls}">${label}</span></div>
-   <div class="small">推荐号码：${p.number}　算法：${NAMES[MODEL_KEYS.indexOf(p.model)]||p.model}</div>
-   ${p.actual?`<div class="small">实际号码：${p.actual.join("-")}</div>`:""}
-  </div>`;
+  const label=p.result==="pending"?"待开奖":
+   p.result==="hit"?"命中":"未中";
+
+  const cls=p.result==="hit"?"green":
+   p.result==="miss"?"red":"";
+
+  return `
+   <div class="draw">
+    <div class="row">
+     <b>系统 ${p.kind} · 第${esc(p.target)}期</b>
+     <span class="${cls}">${label}</span>
+    </div>
+    <div class="small">
+     推荐号码：${p.number}　
+     算法：${NAMES[MODEL_KEYS.indexOf(p.model)]||p.model}
+    </div>
+    ${p.actual?
+     `<div class="small">实际号码：${p.actual.join("-")}</div>`:""}
+   </div>
+  `;
  }).join("");
 }
+
 function renderAll(){
- renderStats();renderLatest();renderPred();renderHistory();renderAnalysis();renderArena();renderRecords();
+ renderStats();
+ renderLatest();
+ renderPred();
+ renderHistory();
+ renderAnalysis();
+ renderArena();
+ renderRecords();
+
  document.getElementById("dataCount").textContent=draws.length+"期";
- document.getElementById("dataInfo").textContent="本机保存最近500期有效记录；首页开奖记录显示最近15期。";
+
+ document.getElementById("dataInfo").textContent=
+  "本机最多保存最近500期有效记录；首页展示最近15期。";
 }
+
 function clearPredictions(){
  if(!confirm("确定清空本机全部预测记录吗？此操作无法恢复。"))return;
- predictions=[];save();renderAll();
+
+ predictions=[];
+ save();
+ renderAll();
 }
+
 draws=load(STORE.history,[]);
 predictions=load(STORE.predictions,[]);
+
+draws=draws.map(normalizeDraw).filter(Boolean).sort(issueSort).slice(0,500);
+
 renderAll();
 refreshAll();
 </script>
