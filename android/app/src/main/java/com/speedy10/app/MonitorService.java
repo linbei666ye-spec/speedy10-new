@@ -5,6 +5,7 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -31,13 +32,14 @@ public class MonitorService extends Service {
 
     private ScheduledExecutorService scheduler;
 
-    public static void start(Service service) {
-        Intent intent = new Intent(service, MonitorService.class);
+    // 修复：使用 Context 接收 MainActivity
+    public static void start(Context context) {
+        Intent intent = new Intent(context, MonitorService.class);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            service.startForegroundService(intent);
+            context.startForegroundService(intent);
         } else {
-            service.startService(intent);
+            context.startService(intent);
         }
     }
 
@@ -82,6 +84,7 @@ public class MonitorService extends Service {
             }
 
             InputStream input = connection.getInputStream();
+
             BufferedReader reader = new BufferedReader(
                     new InputStreamReader(input, "UTF-8")
             );
@@ -97,30 +100,39 @@ public class MonitorService extends Service {
             input.close();
 
             JSONObject root = new JSONObject(response.toString());
-
             JSONObject data = root;
 
-            if (root.has("result")) {
+            if (root.has("result")
+                    && root.opt("result") instanceof JSONObject) {
+
                 JSONObject result = root.getJSONObject("result");
 
-                if (result.has("data")) {
+                if (result.has("data")
+                        && result.opt("data") instanceof JSONObject) {
                     data = result.getJSONObject("data");
                 }
+
             } else if (root.has("data")
-                    && root.get("data") instanceof JSONObject) {
+                    && root.opt("data") instanceof JSONObject) {
+
                 data = root.getJSONObject("data");
             }
 
             String issue = data.optString("preDrawIssue", "");
             String code = data.optString("preDrawCode", "");
 
-            if (issue.isEmpty() || code.isEmpty()) {
+            if (issue.isEmpty() || code.isEmpty()
+                    || "null".equals(issue)
+                    || "null".equals(code)) {
+
                 updateNotification("已连接，等待最新开奖数据");
                 return;
             }
 
-            SharedPreferences prefs =
-                    getSharedPreferences("speedy10_monitor", MODE_PRIVATE);
+            SharedPreferences prefs = getSharedPreferences(
+                    "speedy10_monitor",
+                    MODE_PRIVATE
+            );
 
             String oldIssue = prefs.getString("latest_issue", "");
 
@@ -129,7 +141,10 @@ public class MonitorService extends Service {
                 prefs.edit()
                         .putString("latest_issue", issue)
                         .putString("latest_code", code)
-                        .putLong("latest_time", System.currentTimeMillis())
+                        .putLong(
+                                "latest_time",
+                                System.currentTimeMillis()
+                        )
                         .apply();
 
                 updateNotification(
@@ -137,12 +152,18 @@ public class MonitorService extends Service {
                 );
 
             } else {
-                updateNotification("监控运行中 · 最新期号：" + issue);
+
+                updateNotification(
+                        "监控运行中 · 最新期号：" + issue
+                );
             }
 
         } catch (Exception e) {
+
             updateNotification("网络暂时不可用，正在等待重试");
+
         } finally {
+
             if (connection != null) {
                 connection.disconnect();
             }
@@ -151,6 +172,7 @@ public class MonitorService extends Service {
 
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
                     "Speedy10 后台开奖监控",
@@ -167,6 +189,7 @@ public class MonitorService extends Service {
     }
 
     private Notification buildNotification(String message) {
+
         Notification.Builder builder;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -184,6 +207,7 @@ public class MonitorService extends Service {
     }
 
     private void updateNotification(String message) {
+
         NotificationManager manager =
                 (NotificationManager) getSystemService(
                         NOTIFICATION_SERVICE
@@ -196,12 +220,17 @@ public class MonitorService extends Service {
     }
 
     @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
+    public int onStartCommand(
+            Intent intent,
+            int flags,
+            int startId
+    ) {
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
+
         if (scheduler != null) {
             scheduler.shutdownNow();
         }
