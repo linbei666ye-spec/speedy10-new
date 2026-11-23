@@ -23,7 +23,6 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,19 +48,13 @@ public class MonitorService extends Service {
     private static final String KEY_LATEST_CODE = "latest_code";
 
     private static final String[] MODEL_KEYS = {
-            "frequency",
-            "omission",
-            "trend",
-            "multi",
-            "adaptive"
+            "frequency", "omission", "trend", "multi",
+            "cycle", "transition", "adaptive", "ensemble"
     };
 
     private static final String[] MODEL_NAMES = {
-            "近期冷热频率",
-            "遗漏与间隔",
-            "近期走势",
-            "多周期综合",
-            "自适应加权"
+            "近期冷热频率", "遗漏与间隔", "近期走势", "多窗口融合",
+            "周期相似分析", "号码转移分析", "自适应加权", "多模型动态融合"
     };
 
     private ScheduledExecutorService scheduler;
@@ -336,26 +329,72 @@ public class MonitorService extends Service {
     }
 
     // ==============================
-    // 五种预测算法
+    // 八种预测模型
     // ==============================
 
-    private double[][] scoreNumbers(
-            List<Draw> data,
-            String kind
-    ) {
+    private static final int MODEL_COUNT = 8;
+
+    private double clamp(double value, double min, double max) {
+        return Math.max(min, Math.min(max, value));
+    }
+
+    private double rate(List<Integer> positions, int window, int limit) {
+
+        int count = Math.min(window, positions.size());
+
+        if (count == 0) return 0.0;
+
+        int hits = 0;
+
+        for (int i = 0; i < count; i++) {
+            if (positions.get(i) < limit) hits++;
+        }
+
+        return hits / (double) count;
+    }
+
+    private int median(List<Integer> values) {
+
+        if (values.isEmpty()) return 1;
+
+        List<Integer> sorted = new ArrayList<>(values);
+
+        Collections.sort(sorted);
+
+        int mid = sorted.size() / 2;
+
+        if (sorted.size() % 2 == 1) return sorted.get(mid);
+
+        return (sorted.get(mid - 1) + sorted.get(mid)) / 2;
+    }
+
+    private int zone(int position) {
+
+        if (position < 3) return 0;
+
+        if (position < 7) return 1;
+
+        return 2;
+    }
+
+    private double[][] scoreNumbers(List<Draw> data, String kind) {
 
         int limit = kind.equals("A") ? 3 : 7;
 
-        double[][] scores = new double[11][5];
+        double base = limit / 10.0;
+
+        double[][] scores = new double[11][MODEL_COUNT];
 
         for (int n = 1; n <= 10; n++) {
 
             List<Integer> positions = new ArrayList<>();
 
             for (Draw d : data) {
+
                 int position = 10;
 
                 for (int i = 0; i < 10; i++) {
+
                     if (d.code[i] == n) {
                         position = i;
                         break;
@@ -365,73 +404,127 @@ public class MonitorService extends Service {
                 positions.add(position);
             }
 
+            double r5 = rate(positions, 5, limit);
             double r10 = rate(positions, 10, limit);
+            double r20 = rate(positions, 20, limit);
             double r30 = rate(positions, 30, limit);
+            double r60 = rate(positions, 60, limit);
             double r100 = rate(positions, 100, limit);
 
-            int gap = data.size();
+            int gap = positions.size();
 
             for (int i = 0; i < positions.size(); i++) {
+
                 if (positions.get(i) < limit) {
                     gap = i;
                     break;
                 }
             }
 
+            // 1. 近期冷热频率
             double frequency =
-                    r10 * 0.5 +
-                    r30 * 0.3 +
-                    r100 * 0.2;
+                    r10 * 0.50 +
+                    r30 * 0.30 +
+                    r100 * 0.20;
 
-            double omission =
-                    Math.min(gap, 30) / 30.0;
+            // 2. 遗漏间隔
+            double expectedGap = 1.0 / Math.max(base, 0.01);
 
-            double trend = Math.max(
-                    0,
-                    Math.min(1, 0.5 + (r10 - r30))
+            double omission = Math.exp(
+                    -Math.abs(gap - expectedGap) / expectedGap
             );
 
-            double multi =
-                    r10 * 0.5 +
-                    r30 * 0.3 +
-                    r100 * 0.2;
+            // 3. 近期走势
+            double trend = clamp(
+                    0.5 + (r10 - r30),
+                    0.0,
+                    1.0
+            );
 
+            // 4. 多窗口融合
+            double multi =
+                    r5 * 0.40 +
+                    r20 * 0.35 +
+                    r60 * 0.25;
+
+            // 5. 周期相似分析
+            List<Integer> hitIndexes = new ArrayList<>();
+
+            for (int i = 0; i < positions.size(); i++) {
+
+                if (positions.get(i) < limit) {
+                    hitIndexes.add(i);
+                }
+            }
+
+            List<Integer> intervals = new ArrayList<>();
+
+            for (int i = 1; i < hitIndexes.size(); i++) {
+
+                intervals.add(
+                        hitIndexes.get(i) - hitIndexes.get(i - 1)
+                );
+            }
+
+            int typicalCycle = median(intervals);
+
+            double cycle = Math.exp(
+                    -Math.abs(gap - typicalCycle)
+                    / (double) Math.max(1, typicalCycle)
+            );
+
+            // 6. 号码转移分析
+            int previousZone = positions.isEmpty()
+                    ? 2
+                    : zone(positions.get(0));
+
+            int transitionHits = 0;
+            int transitionTotal = 0;
+
+            for (int i = 1; i < positions.size(); i++) {
+
+                if (zone(positions.get(i)) == previousZone) {
+
+                    transitionTotal++;
+
+                    if (positions.get(i - 1) < limit) {
+                        transitionHits++;
+                    }
+                }
+            }
+
+            double transition =
+                    (transitionHits + base * 8.0)
+                    / (transitionTotal + 8.0);
+
+            // 7. 自适应加权
             double adaptive =
-                    frequency * 0.65 +
-                    omission * 0.15 +
-                    trend * 0.2;
+                    frequency * 0.45 +
+                    trend * 0.20 +
+                    transition * 0.25 +
+                    multi * 0.10;
+
+            // 8. 多模型融合
+            double ensemble =
+                    frequency * 0.18 +
+                    omission * 0.04 +
+                    trend * 0.14 +
+                    multi * 0.18 +
+                    cycle * 0.08 +
+                    transition * 0.22 +
+                    adaptive * 0.16;
 
             scores[n][0] = frequency;
             scores[n][1] = omission;
             scores[n][2] = trend;
             scores[n][3] = multi;
-            scores[n][4] = adaptive;
+            scores[n][4] = cycle;
+            scores[n][5] = transition;
+            scores[n][6] = adaptive;
+            scores[n][7] = ensemble;
         }
 
         return scores;
-    }
-
-    private double rate(
-            List<Integer> positions,
-            int window,
-            int limit
-    ) {
-
-        int count = Math.min(window, positions.size());
-
-        if (count == 0) {
-            return 0;
-        }
-
-        int hits = 0;
-
-        for (int i = 0; i < count; i++) {
-            if (positions.get(i) < limit) {
-                hits++;
-            }
-        }
-
-        return hits / (double) count;
     }
 
     private int rankFor(
@@ -443,6 +536,7 @@ public class MonitorService extends Service {
         double[][] scores = scoreNumbers(data, kind);
 
         int bestNumber = 1;
+
         double bestScore = scores[1][model];
 
         for (int n = 2; n <= 10; n++) {
@@ -450,7 +544,9 @@ public class MonitorService extends Service {
             double score = scores[n][model];
 
             if (score > bestScore) {
+
                 bestScore = score;
+
                 bestNumber = n;
             }
         }
@@ -475,17 +571,18 @@ public class MonitorService extends Service {
 
         int minTrain = 30;
 
-        int maxTests = Math.min(
-                120,
-                data.size() - minTrain
+        int maxTests = Math.max(
+                0,
+                Math.min(120, data.size() - minTrain)
         );
 
-        ModelResult[] result = new ModelResult[5];
+        ModelResult[] result = new ModelResult[MODEL_COUNT];
 
-        for (int m = 0; m < 5; m++) {
+        for (int m = 0; m < MODEL_COUNT; m++) {
             result[m] = new ModelResult();
         }
 
+        // 滚动回测：只使用被测期之前已经开奖的数据
         for (int i = 0; i < maxTests; i++) {
 
             List<Draw> train = data.subList(
@@ -493,21 +590,20 @@ public class MonitorService extends Service {
                     data.size()
             );
 
-            if (train.size() < minTrain) {
-                continue;
-            }
+            if (train.size() < minTrain) continue;
 
             int[] actual = data.get(i).code;
 
-            int limit = kind.equals("A") ? 3 : 7;
-
-            for (int m = 0; m < 5; m++) {
+            for (int m = 0; m < MODEL_COUNT; m++) {
 
                 int predicted = rankFor(train, kind, m);
 
                 boolean hit = false;
 
+                int limit = kind.equals("A") ? 3 : 7;
+
                 for (int j = 0; j < limit; j++) {
+
                     if (actual[j] == predicted) {
                         hit = true;
                         break;
@@ -522,18 +618,18 @@ public class MonitorService extends Service {
             }
         }
 
-        for (int m = 0; m < 5; m++) {
+        for (int m = 0; m < MODEL_COUNT; m++) {
 
             ModelResult x = result[m];
 
             x.rate = x.total == 0
-                    ? 0
+                    ? 0.0
                     : x.hit / (double) x.total;
 
             x.adjusted = x.total == 0
                     ? base
-                    : (x.rate * x.total + base * 30)
-                    / (x.total + 30);
+                    : (x.rate * x.total + base * 30.0)
+                    / (x.total + 30.0);
         }
 
         return result;
@@ -548,7 +644,7 @@ public class MonitorService extends Service {
 
         int best = 0;
 
-        for (int i = 1; i < 5; i++) {
+        for (int i = 1; i < MODEL_COUNT; i++) {
 
             if (tests[i].adjusted > tests[best].adjusted) {
                 best = i;
@@ -571,9 +667,7 @@ public class MonitorService extends Service {
 
             JSONObject p = predictions.optJSONObject(i);
 
-            if (p == null) {
-                continue;
-            }
+            if (p == null) continue;
 
             if (target.equals(p.optString("target"))
                     && kind.equals(p.optString("kind"))) {
@@ -635,24 +729,25 @@ public class MonitorService extends Service {
         }
 
         if (draws.size() < 30) {
+
             updateNotification(
                     "历史数据不足30期，暂不能生成预测"
             );
+
             return;
         }
 
         boolean needA = !predictionExists(targetIssue, "A");
+
         boolean needB = !predictionExists(targetIssue, "B");
 
         if (!needA && !needB) {
             return;
         }
 
-        int modelA = -1;
-        int modelB = -1;
-
         if (needA) {
-            modelA = chooseModel(draws, "A");
+
+            int modelA = chooseModel(draws, "A");
 
             int numberA = rankFor(
                     draws,
@@ -669,7 +764,8 @@ public class MonitorService extends Service {
         }
 
         if (needB) {
-            modelB = chooseModel(draws, "B");
+
+            int modelB = chooseModel(draws, "B");
 
             int numberB = rankFor(
                     draws,
@@ -697,6 +793,7 @@ public class MonitorService extends Service {
     ) {
 
         for (int i = 0; i < limit; i++) {
+
             if (code[i] == number) {
                 return true;
             }
@@ -719,9 +816,7 @@ public class MonitorService extends Service {
 
             JSONObject p = predictions.optJSONObject(i);
 
-            if (p == null) {
-                continue;
-            }
+            if (p == null) continue;
 
             if (!"pending".equals(p.optString("result"))) {
                 continue;
@@ -731,9 +826,7 @@ public class MonitorService extends Service {
 
             Draw d = byIssue.get(target);
 
-            if (d == null) {
-                continue;
-            }
+            if (d == null) continue;
 
             String kind = p.optString("kind");
 
@@ -761,6 +854,7 @@ public class MonitorService extends Service {
                 }
 
                 p.put("actual", actual);
+
                 p.put("settledAt", d.time);
 
                 changed = true;
@@ -788,8 +882,11 @@ public class MonitorService extends Service {
                 prefs.getString(KEY_HISTORY, "[]");
 
         try {
+
             predictions = new JSONArray(savedPredictions);
+
         } catch (Exception e) {
+
             predictions = new JSONArray();
         }
 
@@ -813,6 +910,7 @@ public class MonitorService extends Service {
             draws = loaded;
 
         } catch (Exception e) {
+
             draws = new ArrayList<>();
         }
     }
@@ -918,6 +1016,7 @@ public class MonitorService extends Service {
                 JSONArray historyArray = extractHistory(historyRoot);
 
                 if (historyArray == null || historyArray.length() == 0) {
+
                     throw new Exception("历史开奖数据为空");
                 }
 
@@ -936,20 +1035,20 @@ public class MonitorService extends Service {
                 }
 
                 if (incoming.isEmpty()) {
+
                     throw new Exception("没有识别到有效历史记录");
                 }
 
-                // 把最新开奖也合并进历史记录
                 incoming.add(
                         new Draw(issue, drawTime, latestCode)
                 );
 
                 mergeDraws(incoming);
 
-                // 先结算已经开奖的预测
+                // 先结算已开奖的预测
                 boolean settled = settlePredictions();
 
-                // 再为下一期生成A、B预测
+                // 再生成下一期 A、B 预测
                 makeNextPredictions(targetIssue);
 
                 saveAll();
@@ -1050,6 +1149,7 @@ public class MonitorService extends Service {
             int flags,
             int startId
     ) {
+
         return START_STICKY;
     }
 
