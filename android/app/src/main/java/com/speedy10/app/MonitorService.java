@@ -17,17 +17,21 @@ import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 public class MonitorService extends Service {
@@ -48,21 +52,47 @@ public class MonitorService extends Service {
     private static final String KEY_LATEST_CODE = "latest_code";
 
     private static final String[] MODEL_KEYS = {
-            "frequency", "omission", "trend", "multi",
-            "cycle", "transition", "adaptive", "ensemble"
+            "frequency",
+            "omission",
+            "trend",
+            "multi",
+            "cycle",
+            "transition",
+            "adaptive",
+            "ensemble"
     };
 
     private static final int MODEL_COUNT = 8;
     private static final int MIN_TRAIN_SIZE = 30;
 
+    // 普通后台检查间隔：30秒
+    private static final long NORMAL_REFRESH_SECONDS = 30;
+
+    // 开奖时间到了但数据尚未更新：5秒重试
+    private static final long RETRY_SECONDS = 5;
+
     private ScheduledExecutorService scheduler;
+
+    private ScheduledFuture<?> drawFuture;
+
     private final Object lock = new Object();
 
+    private volatile boolean serviceDestroyed = false;
+
     private List<Draw> draws = new ArrayList<>();
+
     private JSONArray predictions = new JSONArray();
 
+    // =========================
+    // 启动服务
+    // =========================
+
     public static void start(Context context) {
-        Intent intent = new Intent(context, MonitorService.class);
+
+        Intent intent = new Intent(
+                context,
+                MonitorService.class
+        );
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
@@ -75,7 +105,10 @@ public class MonitorService extends Service {
     public void onCreate() {
         super.onCreate();
 
+        serviceDestroyed = false;
+
         createNotificationChannel();
+
         loadSavedData();
 
         startForeground(
@@ -83,23 +116,29 @@ public class MonitorService extends Service {
                 buildNotification("正在启动后台预测监控…")
         );
 
-        // 后台低优先级线程，尽量减少对界面操作的影响。
         scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+
             Thread t = new Thread(() -> {
+
                 android.os.Process.setThreadPriority(
                         android.os.Process.THREAD_PRIORITY_BACKGROUND
                 );
+
                 r.run();
+
             }, "speedy10-monitor");
 
             return t;
         });
 
-        // 启动后立即检查，之后每次完成检查再等待60秒。
+        // 启动后立即读取一次
+        scheduler.execute(this::checkLatestDraw);
+
+        // 普通刷新仍然保持每30秒一次
         scheduler.scheduleWithFixedDelay(
                 this::checkLatestDraw,
-                0,
-                60,
+                NORMAL_REFRESH_SECONDS,
+                NORMAL_REFRESH_SECONDS,
                 TimeUnit.SECONDS
         );
     }
@@ -109,19 +148,32 @@ public class MonitorService extends Service {
     // =========================
 
     private JSONObject fetchJSON(String address) throws Exception {
+
         HttpURLConnection connection = null;
 
         try {
+
             URL url = new URL(address);
+
             connection = (HttpURLConnection) url.openConnection();
 
             connection.setRequestMethod("GET");
+
             connection.setConnectTimeout(15000);
+
             connection.setReadTimeout(20000);
+
             connection.setUseCaches(false);
 
-            connection.setRequestProperty("Cache-Control", "no-cache");
-            connection.setRequestProperty("Pragma", "no-cache");
+            connection.setRequestProperty(
+                    "Cache-Control",
+                    "no-cache"
+            );
+
+            connection.setRequestProperty(
+                    "Pragma",
+                    "no-cache"
+            );
 
             int status = connection.getResponseCode();
 
@@ -133,6 +185,7 @@ public class MonitorService extends Service {
 
             try (
                     InputStream input = connection.getInputStream();
+
                     BufferedReader reader = new BufferedReader(
                             new InputStreamReader(
                                     input,
@@ -140,6 +193,7 @@ public class MonitorService extends Service {
                             )
                     )
             ) {
+
                 String line;
 
                 while ((line = reader.readLine()) != null) {
@@ -150,6 +204,7 @@ public class MonitorService extends Service {
             return new JSONObject(response.toString());
 
         } finally {
+
             if (connection != null) {
                 connection.disconnect();
             }
@@ -157,9 +212,11 @@ public class MonitorService extends Service {
     }
 
     private JSONObject unwrapLatest(JSONObject root) {
+
         JSONObject result = root.optJSONObject("result");
 
         if (result != null) {
+
             JSONObject data = result.optJSONObject("data");
 
             if (data != null) {
@@ -177,6 +234,7 @@ public class MonitorService extends Service {
     }
 
     private JSONArray extractHistory(JSONObject root) {
+
         JSONArray array = root.optJSONArray("data");
 
         if (array != null) {
@@ -186,6 +244,7 @@ public class MonitorService extends Service {
         JSONObject result = root.optJSONObject("result");
 
         if (result != null) {
+
             array = result.optJSONArray("data");
 
             if (array != null) {
@@ -195,6 +254,7 @@ public class MonitorService extends Service {
             JSONObject data = result.optJSONObject("data");
 
             if (data != null) {
+
                 array = data.optJSONArray("list");
 
                 if (array != null) {
@@ -207,22 +267,130 @@ public class MonitorService extends Service {
     }
 
     // =========================
+    // 开奖时间解析
+    // =========================
+
+    private long parseApiTime(String value) {
+
+        if (value == null || value.trim().isEmpty()) {
+            return -1;
+        }
+
+        try {
+
+            SimpleDateFormat format = new SimpleDateFormat(
+                    "yyyy-MM-dd HH:mm:ss",
+                    Locale.US
+            );
+
+            format.setLenient(false);
+
+            Date date = format.parse(value.trim());
+
+            if (date == null) {
+                return -1;
+            }
+
+            return date.getTime();
+
+        } catch (Exception e) {
+
+            return -1;
+        }
+    }
+
+    /*
+     * 使用 API 返回的 serverTime 和 drawTime 计算开奖倒计时。
+     *
+     * 例如：
+     * serverTime = 20:07:41
+     * drawTime   = 20:08:03
+     *
+     * 后台将在约22秒后检查开奖数据。
+     *
+     * 如果 drawTime 已经到达，但开奖数据仍未更新，
+     * 则每5秒重新检查一次。
+     */
+
+    private void scheduleNextDrawCheck(
+            String serverTime,
+            String drawTime
+    ) {
+
+        long serverMillis = parseApiTime(serverTime);
+
+        long drawMillis = parseApiTime(drawTime);
+
+        if (serverMillis < 0 || drawMillis < 0) {
+
+            scheduleDrawCheck(RETRY_SECONDS);
+
+            return;
+        }
+
+        long delayMillis = drawMillis - serverMillis;
+
+        if (delayMillis <= 0) {
+
+            scheduleDrawCheck(RETRY_SECONDS);
+
+        } else {
+
+            scheduleDrawCheck(delayMillis);
+        }
+    }
+
+    private void scheduleDrawCheck(long delayMillis) {
+
+        if (serviceDestroyed || scheduler == null) {
+            return;
+        }
+
+        if (scheduler.isShutdown()) {
+            return;
+        }
+
+        synchronized (lock) {
+
+            if (drawFuture != null) {
+                drawFuture.cancel(false);
+                drawFuture = null;
+            }
+
+            long safeDelay = Math.max(1000, delayMillis);
+
+            drawFuture = scheduler.schedule(
+                    this::checkLatestDraw,
+                    safeDelay,
+                    TimeUnit.MILLISECONDS
+            );
+        }
+    }
+
+    // =========================
     // 开奖数据处理
     // =========================
 
     private static class Draw {
+
         String issue;
+
         String time;
+
         int[] code;
 
         Draw(String issue, String time, int[] code) {
+
             this.issue = issue;
+
             this.time = time;
+
             this.code = code;
         }
     }
 
     private int[] validCode(String value) {
+
         if (value == null || value.isEmpty()) {
             return null;
         }
@@ -234,10 +402,13 @@ public class MonitorService extends Service {
         }
 
         int[] numbers = new int[10];
+
         boolean[] seen = new boolean[11];
 
         try {
+
             for (int i = 0; i < 10; i++) {
+
                 int n = Integer.parseInt(parts[i]);
 
                 if (n < 1 || n > 10 || seen[n]) {
@@ -245,10 +416,12 @@ public class MonitorService extends Service {
                 }
 
                 numbers[i] = n;
+
                 seen[n] = true;
             }
 
         } catch (Exception e) {
+
             return null;
         }
 
@@ -256,6 +429,7 @@ public class MonitorService extends Service {
     }
 
     private Draw normalizeDraw(JSONObject object) {
+
         if (object == null) {
             return null;
         }
@@ -288,14 +462,21 @@ public class MonitorService extends Service {
     }
 
     private int compareIssue(String a, String b) {
+
         try {
-            return new BigInteger(b).compareTo(new BigInteger(a));
+
+            return new BigInteger(b).compareTo(
+                    new BigInteger(a)
+            );
+
         } catch (Exception e) {
+
             return b.compareTo(a);
         }
     }
 
     private void mergeDraws(List<Draw> incoming) {
+
         Map<String, Draw> map = new HashMap<>();
 
         for (Draw d : draws) {
@@ -314,6 +495,7 @@ public class MonitorService extends Service {
         );
 
         if (merged.size() > 500) {
+
             merged = new ArrayList<>(
                     merged.subList(0, 500)
             );
@@ -326,11 +508,22 @@ public class MonitorService extends Service {
     // 八种预测模型
     // =========================
 
-    private double clamp(double value, double min, double max) {
-        return Math.max(min, Math.min(max, value));
+    private double clamp(
+            double value,
+            double min,
+            double max
+    ) {
+
+        return Math.max(
+                min,
+                Math.min(max, value)
+        );
     }
 
-    private boolean isTargetPosition(int position, String kind) {
+    private boolean isTargetPosition(
+            int position,
+            String kind
+    ) {
 
         // A：前三名
         if ("A".equals(kind)) {
@@ -351,6 +544,7 @@ public class MonitorService extends Service {
     }
 
     private double baseRate(String kind) {
+
         if ("A".equals(kind)) {
             return 0.30;
         }
@@ -363,7 +557,11 @@ public class MonitorService extends Service {
             int window,
             String kind
     ) {
-        int count = Math.min(window, positions.size());
+
+        int count = Math.min(
+                window,
+                positions.size()
+        );
 
         if (count == 0) {
             return 0.0;
@@ -372,7 +570,11 @@ public class MonitorService extends Service {
         int hits = 0;
 
         for (int i = 0; i < count; i++) {
-            if (isTargetPosition(positions.get(i), kind)) {
+
+            if (isTargetPosition(
+                    positions.get(i),
+                    kind
+            )) {
                 hits++;
             }
         }
@@ -381,11 +583,13 @@ public class MonitorService extends Service {
     }
 
     private int median(List<Integer> values) {
+
         if (values.isEmpty()) {
             return 1;
         }
 
         List<Integer> sorted = new ArrayList<>(values);
+
         Collections.sort(sorted);
 
         int mid = sorted.size() / 2;
@@ -400,6 +604,7 @@ public class MonitorService extends Service {
     }
 
     private int zone(int position) {
+
         if (position < 3) {
             return 0;
         }
@@ -411,44 +616,86 @@ public class MonitorService extends Service {
         return 2;
     }
 
+    /*
+     * 评分计算优化：
+     *
+     * 旧版每个号码都要遍历每一期的10个位置，
+     * 再逐个寻找号码所在位置。
+     *
+     * 新版先建立号码位置矩阵，
+     * 每期只扫描一次10个号码，
+     * 再从矩阵中计算八种模型。
+     *
+     * 评分公式和八种模型的权重保持不变。
+     */
+
     private double[][] scoreNumbers(
             List<Draw> data,
             String kind
     ) {
+
         double base = baseRate(kind);
 
         double[][] scores = new double[11][MODEL_COUNT];
 
+        int size = data.size();
+
+        if (size == 0) {
+            return scores;
+        }
+
+        // 号码位置矩阵
+        int[][] positionTable = new int[11][size];
+
+        for (int i = 0; i < size; i++) {
+
+            int[] code = data.get(i).code;
+
+            for (int position = 0; position < 10; position++) {
+
+                int number = code[position];
+
+                if (number >= 1 && number <= 10) {
+                    positionTable[number][i] = position;
+                }
+            }
+        }
+
         for (int n = 1; n <= 10; n++) {
 
-            List<Integer> positions = new ArrayList<>();
+            List<Integer> positions = new ArrayList<>(size);
 
-            for (Draw d : data) {
-                int position = 10;
+            for (int i = 0; i < size; i++) {
 
-                for (int i = 0; i < 10; i++) {
-                    if (d.code[i] == n) {
-                        position = i;
-                        break;
-                    }
-                }
-
-                positions.add(position);
+                positions.add(
+                        positionTable[n][i]
+                );
             }
 
             double r5 = rate(positions, 5, kind);
+
             double r10 = rate(positions, 10, kind);
+
             double r20 = rate(positions, 20, kind);
+
             double r30 = rate(positions, 30, kind);
+
             double r60 = rate(positions, 60, kind);
+
             double r100 = rate(positions, 100, kind);
 
             // 最近遗漏
             int gap = positions.size();
 
             for (int i = 0; i < positions.size(); i++) {
-                if (isTargetPosition(positions.get(i), kind)) {
+
+                if (isTargetPosition(
+                        positions.get(i),
+                        kind
+                )) {
+
                     gap = i;
+
                     break;
                 }
             }
@@ -460,10 +707,12 @@ public class MonitorService extends Service {
                     + r100 * 0.20;
 
             // 模型2：遗漏与间隔
-            double expectedGap = 1.0 / Math.max(base, 0.01);
+            double expectedGap =
+                    1.0 / Math.max(base, 0.01);
 
             double omission = Math.exp(
-                    -Math.abs(gap - expectedGap) / expectedGap
+                    -Math.abs(gap - expectedGap)
+                    / expectedGap
             );
 
             // 模型3：近期走势
@@ -483,7 +732,12 @@ public class MonitorService extends Service {
             List<Integer> hitIndexes = new ArrayList<>();
 
             for (int i = 0; i < positions.size(); i++) {
-                if (isTargetPosition(positions.get(i), kind)) {
+
+                if (isTargetPosition(
+                        positions.get(i),
+                        kind
+                )) {
+
                     hitIndexes.add(i);
                 }
             }
@@ -491,8 +745,10 @@ public class MonitorService extends Service {
             List<Integer> intervals = new ArrayList<>();
 
             for (int i = 1; i < hitIndexes.size(); i++) {
+
                 intervals.add(
-                        hitIndexes.get(i) - hitIndexes.get(i - 1)
+                        hitIndexes.get(i)
+                        - hitIndexes.get(i - 1)
                 );
             }
 
@@ -505,23 +761,30 @@ public class MonitorService extends Service {
 
             // 模型6：号码转移分析
             int transitionHits = 0;
+
             int transitionTotal = 0;
 
             if (!positions.isEmpty()) {
 
-                int currentZone = zone(positions.get(0));
+                int currentZone = zone(
+                        positions.get(0)
+                );
 
                 for (int i = 1; i < positions.size(); i++) {
 
-                    int earlierZone = zone(positions.get(i));
+                    int earlierZone = zone(
+                            positions.get(i)
+                    );
 
                     if (earlierZone == currentZone) {
+
                         transitionTotal++;
 
                         if (isTargetPosition(
                                 positions.get(i - 1),
                                 kind
                         )) {
+
                             transitionHits++;
                         }
                     }
@@ -550,12 +813,19 @@ public class MonitorService extends Service {
                     + adaptive * 0.16;
 
             scores[n][0] = frequency;
+
             scores[n][1] = omission;
+
             scores[n][2] = trend;
+
             scores[n][3] = multi;
+
             scores[n][4] = cycle;
+
             scores[n][5] = transition;
+
             scores[n][6] = adaptive;
+
             scores[n][7] = ensemble;
         }
 
@@ -566,14 +836,19 @@ public class MonitorService extends Service {
             double[][] scores,
             int model
     ) {
+
         int bestNumber = 1;
+
         double bestScore = scores[1][model];
 
         for (int n = 2; n <= 10; n++) {
+
             double score = scores[n][model];
 
             if (score > bestScore) {
+
                 bestScore = score;
+
                 bestNumber = n;
             }
         }
@@ -586,19 +861,30 @@ public class MonitorService extends Service {
             String kind,
             int model
     ) {
-        double[][] scores = scoreNumbers(data, kind);
 
-        return bestNumberForScores(scores, model);
+        double[][] scores = scoreNumbers(
+                data,
+                kind
+        );
+
+        return bestNumberForScores(
+                scores,
+                model
+        );
     }
 
     // =========================
-    // 历史滚动回测（优化版）
+    // 历史滚动回测
     // =========================
 
     private static class ModelResult {
+
         int hit;
+
         int total;
+
         double rate;
+
         double adjusted;
     }
 
@@ -606,22 +892,27 @@ public class MonitorService extends Service {
             List<Draw> data,
             String kind
     ) {
+
         double base = baseRate(kind);
 
         int maxTests = Math.max(
                 0,
-                Math.min(120, data.size() - MIN_TRAIN_SIZE)
+                Math.min(
+                        120,
+                        data.size() - MIN_TRAIN_SIZE
+                )
         );
 
-        ModelResult[] result = new ModelResult[MODEL_COUNT];
+        ModelResult[] result =
+                new ModelResult[MODEL_COUNT];
 
         for (int m = 0; m < MODEL_COUNT; m++) {
+
             result[m] = new ModelResult();
         }
 
-        // 数据按最新到最旧排列。
-        // 每一期只计算一次评分矩阵，
-        // 同时供八种模型使用。
+        // 每一个回测样本只计算一次评分矩阵。
+        // 同一评分矩阵同时供八种模型使用。
         for (int i = 0; i < maxTests; i++) {
 
             List<Draw> train = data.subList(
@@ -633,14 +924,19 @@ public class MonitorService extends Service {
                 continue;
             }
 
-            // 关键优化：不再为每个模型重复计算scoreNumbers。
-            double[][] scores = scoreNumbers(train, kind);
+            double[][] scores = scoreNumbers(
+                    train,
+                    kind
+            );
 
             int[] actual = data.get(i).code;
 
             for (int m = 0; m < MODEL_COUNT; m++) {
 
-                int predicted = bestNumberForScores(scores, m);
+                int predicted = bestNumberForScores(
+                        scores,
+                        m
+                );
 
                 boolean hit = false;
 
@@ -648,7 +944,9 @@ public class MonitorService extends Service {
 
                     if (isTargetPosition(j, kind)
                             && actual[j] == predicted) {
+
                         hit = true;
+
                         break;
                     }
                 }
@@ -661,7 +959,7 @@ public class MonitorService extends Service {
             }
         }
 
-        // 保留原有收缩计算规则。
+        // 保留原来的收缩计算规则
         for (int m = 0; m < MODEL_COUNT; m++) {
 
             ModelResult x = result[m];
@@ -685,12 +983,19 @@ public class MonitorService extends Service {
             List<Draw> data,
             String kind
     ) {
-        ModelResult[] tests = testModels(data, kind);
+
+        ModelResult[] tests = testModels(
+                data,
+                kind
+        );
 
         int best = 0;
 
         for (int i = 1; i < MODEL_COUNT; i++) {
-            if (tests[i].adjusted > tests[best].adjusted) {
+
+            if (tests[i].adjusted
+                    > tests[best].adjusted) {
+
                 best = i;
             }
         }
@@ -703,8 +1008,11 @@ public class MonitorService extends Service {
     // =========================
 
     private static class NineChoice {
+
         int position;
+
         int excluded;
+
         double rate;
 
         NineChoice(
@@ -712,8 +1020,11 @@ public class MonitorService extends Service {
                 int excluded,
                 double rate
         ) {
+
             this.position = position;
+
             this.excluded = excluded;
+
             this.rate = rate;
         }
     }
@@ -722,7 +1033,11 @@ public class MonitorService extends Service {
             List<Draw> source,
             String seed
     ) {
-        int sampleSize = Math.min(100, source.size());
+
+        int sampleSize = Math.min(
+                100,
+                source.size()
+        );
 
         if (sampleSize == 0) {
             return new NineChoice(1, 1, 0.0);
@@ -733,6 +1048,7 @@ public class MonitorService extends Service {
         List<Integer> bestPositions = new ArrayList<>();
 
         int[] excludedByPosition = new int[10];
+
         double[] rateByPosition = new double[10];
 
         for (int pos = 0; pos < 10; pos++) {
@@ -740,6 +1056,7 @@ public class MonitorService extends Service {
             int[] counts = new int[11];
 
             for (int i = 0; i < sampleSize; i++) {
+
                 int n = source.get(i).code[pos];
 
                 if (n >= 1 && n <= 10) {
@@ -749,34 +1066,44 @@ public class MonitorService extends Service {
 
             int minCount = Integer.MAX_VALUE;
 
-            List<Integer> excludedCandidates = new ArrayList<>();
+            List<Integer> excludedCandidates =
+                    new ArrayList<>();
 
             for (int n = 1; n <= 10; n++) {
 
                 if (counts[n] < minCount) {
+
                     minCount = counts[n];
 
                     excludedCandidates.clear();
+
                     excludedCandidates.add(n);
 
                 } else if (counts[n] == minCount) {
+
                     excludedCandidates.add(n);
                 }
             }
 
-            int hash = (seed + "-" + (pos + 1)).hashCode();
+            int hash = (
+                    seed + "-" + (pos + 1)
+            ).hashCode();
 
             int excludedIndex = Math.floorMod(
                     hash,
                     excludedCandidates.size()
             );
 
-            int excluded = excludedCandidates.get(excludedIndex);
+            int excluded = excludedCandidates.get(
+                    excludedIndex
+            );
 
             double currentRate =
-                    1.0 - counts[excluded] / (double) sampleSize;
+                    1.0 - counts[excluded]
+                    / (double) sampleSize;
 
             excludedByPosition[pos] = excluded;
+
             rateByPosition[pos] = currentRate;
 
             int comparison = Double.compare(
@@ -789,6 +1116,7 @@ public class MonitorService extends Service {
                 bestRate = currentRate;
 
                 bestPositions.clear();
+
                 bestPositions.add(pos);
 
             } else if (comparison == 0) {
@@ -804,7 +1132,9 @@ public class MonitorService extends Service {
                 bestPositions.size()
         );
 
-        int chosenPosition = bestPositions.get(chosenIndex);
+        int chosenPosition = bestPositions.get(
+                chosenIndex
+        );
 
         return new NineChoice(
                 chosenPosition + 1,
@@ -813,11 +1143,16 @@ public class MonitorService extends Service {
         );
     }
 
-    private double testNineOutOfSample(List<Draw> data) {
+    private double testNineOutOfSample(
+            List<Draw> data
+    ) {
 
         int maxTests = Math.max(
                 0,
-                Math.min(80, data.size() - MIN_TRAIN_SIZE)
+                Math.min(
+                        80,
+                        data.size() - MIN_TRAIN_SIZE
+                )
         );
 
         if (maxTests <= 0) {
@@ -825,6 +1160,7 @@ public class MonitorService extends Service {
         }
 
         int hit = 0;
+
         int total = 0;
 
         for (int i = 0; i < maxTests; i++) {
@@ -871,6 +1207,7 @@ public class MonitorService extends Service {
             String target,
             String kind
     ) {
+
         for (int i = 0; i < predictions.length(); i++) {
 
             JSONObject p = predictions.optJSONObject(i);
@@ -881,6 +1218,7 @@ public class MonitorService extends Service {
 
             if (target.equals(p.optString("target"))
                     && kind.equals(p.optString("kind"))) {
+
                 return true;
             }
         }
@@ -894,15 +1232,23 @@ public class MonitorService extends Service {
             int number,
             int model
     ) {
+
         try {
+
             JSONObject p = new JSONObject();
 
             p.put("kind", kind);
+
             p.put("target", target);
+
             p.put("base", draws.get(0).issue);
+
             p.put("number", number);
+
             p.put("model", MODEL_KEYS[model]);
+
             p.put("result", "pending");
+
             p.put("created", System.currentTimeMillis());
 
             prependPrediction(p);
@@ -911,7 +1257,10 @@ public class MonitorService extends Service {
         }
     }
 
-    private void addNineNumberPrediction(String target) {
+    private void addNineNumberPrediction(
+            String target
+    ) {
+
         try {
 
             NineChoice choice = chooseNinePosition(
@@ -922,28 +1271,37 @@ public class MonitorService extends Service {
             JSONArray numbers = new JSONArray();
 
             for (int n = 1; n <= 10; n++) {
+
                 if (n != choice.excluded) {
                     numbers.put(n);
                 }
             }
 
-            double validationRate = testNineOutOfSample(draws);
+            double validationRate =
+                    testNineOutOfSample(draws);
 
             JSONObject p = new JSONObject();
 
             p.put("kind", "D");
+
             p.put("target", target);
+
             p.put("base", draws.get(0).issue);
 
             p.put("position", choice.position);
+
             p.put("numbers", numbers);
+
             p.put("excluded", choice.excluded);
 
             p.put("positionRate", validationRate);
+
             p.put("trainingRate", choice.rate);
 
             p.put("model", "历史位置九码分析");
+
             p.put("result", "pending");
+
             p.put("created", System.currentTimeMillis());
 
             prependPrediction(p);
@@ -956,7 +1314,9 @@ public class MonitorService extends Service {
     // 旧版D待开奖记录升级
     // =========================
 
-    private boolean upgradePendingNinePredictions(String target) {
+    private boolean upgradePendingNinePredictions(
+            String target
+    ) {
 
         boolean changed = false;
 
@@ -984,7 +1344,10 @@ public class MonitorService extends Service {
                 continue;
             }
 
-            int oldPosition = p.optInt("position", 0);
+            int oldPosition = p.optInt(
+                    "position",
+                    0
+            );
 
             if (oldPosition >= 1 && oldPosition <= 10) {
                 continue;
@@ -1000,22 +1363,29 @@ public class MonitorService extends Service {
                 JSONArray numbers = new JSONArray();
 
                 for (int n = 1; n <= 10; n++) {
+
                     if (n != choice.excluded) {
                         numbers.put(n);
                     }
                 }
 
-                double validationRate = testNineOutOfSample(draws);
+                double validationRate =
+                        testNineOutOfSample(draws);
 
                 p.put("base", draws.get(0).issue);
+
                 p.put("position", choice.position);
+
                 p.put("numbers", numbers);
+
                 p.put("excluded", choice.excluded);
 
                 p.put("positionRate", validationRate);
+
                 p.put("trainingRate", choice.rate);
 
                 p.put("model", "历史位置九码分析");
+
                 p.put("upgraded", true);
 
                 changed = true;
@@ -1034,6 +1404,7 @@ public class MonitorService extends Service {
         updated.put(p);
 
         for (int i = 0; i < predictions.length(); i++) {
+
             updated.put(predictions.opt(i));
         }
 
@@ -1044,6 +1415,7 @@ public class MonitorService extends Service {
             JSONArray trimmed = new JSONArray();
 
             for (int i = 0; i < 1000; i++) {
+
                 trimmed.put(predictions.opt(i));
             }
 
@@ -1051,14 +1423,24 @@ public class MonitorService extends Service {
         }
     }
 
-    private void makeNextPredictions(String targetIssue) {
+    // =========================
+    // 生成下一期预测
+    // =========================
+
+    private void makeNextPredictions(
+            String targetIssue
+    ) {
 
         if (targetIssue == null || targetIssue.isEmpty()) {
             return;
         }
 
         if (draws.size() < MIN_TRAIN_SIZE) {
-            updateNotification("历史数据不足30期，暂不能生成预测");
+
+            updateNotification(
+                    "历史数据不足30期，暂不能生成预测"
+            );
+
             return;
         }
 
@@ -1066,8 +1448,13 @@ public class MonitorService extends Service {
 
             if (!predictionExists(targetIssue, kind)) {
 
-                int model = chooseModel(draws, kind);
+                // 根据历史滚动回测选择模型
+                int model = chooseModel(
+                        draws,
+                        kind
+                );
 
+                // 使用选中的模型计算下一期号码
                 int number = rankFor(
                         draws,
                         kind,
@@ -1088,11 +1475,15 @@ public class MonitorService extends Service {
         );
 
         if (!predictionExists(targetIssue, "D")) {
+
             addNineNumberPrediction(targetIssue);
         }
 
         if (upgraded) {
-            updateNotification("D系统旧版待开奖记录已升级");
+
+            updateNotification(
+                    "D系统旧版待开奖记录已升级"
+            );
         }
     }
 
@@ -1105,10 +1496,12 @@ public class MonitorService extends Service {
             int number,
             String kind
     ) {
+
         for (int i = 0; i < code.length; i++) {
 
             if (isTargetPosition(i, kind)
                     && code[i] == number) {
+
                 return true;
             }
         }
@@ -1121,6 +1514,7 @@ public class MonitorService extends Service {
         Map<String, Draw> byIssue = new HashMap<>();
 
         for (Draw d : draws) {
+
             byIssue.put(d.issue, d);
         }
 
@@ -1132,6 +1526,7 @@ public class MonitorService extends Service {
 
             if (p == null
                     || !"pending".equals(p.optString("result"))) {
+
                 continue;
             }
 
@@ -1157,13 +1552,16 @@ public class MonitorService extends Service {
                         && position >= 1
                         && position <= 10) {
 
-                    int actualAtPosition = d.code[position - 1];
+                    int actualAtPosition =
+                            d.code[position - 1];
 
                     for (int j = 0; j < numbers.length(); j++) {
 
                         if (numbers.optInt(j, -1)
                                 == actualAtPosition) {
+
                             hit = true;
+
                             break;
                         }
                     }
@@ -1179,7 +1577,9 @@ public class MonitorService extends Service {
                         for (int actual : d.code) {
 
                             if (actual == n) {
+
                                 hit = true;
+
                                 break;
                             }
                         }
@@ -1197,7 +1597,10 @@ public class MonitorService extends Service {
 
             try {
 
-                p.put("result", hit ? "hit" : "miss");
+                p.put(
+                        "result",
+                        hit ? "hit" : "miss"
+                );
 
                 JSONArray actual = new JSONArray();
 
@@ -1206,6 +1609,7 @@ public class MonitorService extends Service {
                 }
 
                 p.put("actual", actual);
+
                 p.put("settledAt", d.time);
 
                 changed = true;
@@ -1224,18 +1628,27 @@ public class MonitorService extends Service {
     private void loadSavedData() {
 
         SharedPreferences prefs =
-                getSharedPreferences(PREFS, MODE_PRIVATE);
+                getSharedPreferences(
+                        PREFS,
+                        MODE_PRIVATE
+                );
 
-        String savedPredictions =
-                prefs.getString(KEY_PREDICTIONS, "[]");
+        String savedPredictions = prefs.getString(
+                KEY_PREDICTIONS,
+                "[]"
+        );
 
-        String savedHistory =
-                prefs.getString(KEY_HISTORY, "[]");
+        String savedHistory = prefs.getString(
+                KEY_HISTORY,
+                "[]"
+        );
 
         try {
+
             predictions = new JSONArray(savedPredictions);
 
         } catch (Exception e) {
+
             predictions = new JSONArray();
         }
 
@@ -1263,7 +1676,15 @@ public class MonitorService extends Service {
                     (a, b) -> compareIssue(a.issue, b.issue)
             );
 
+            if (draws.size() > 500) {
+
+                draws = new ArrayList<>(
+                        draws.subList(0, 500)
+                );
+            }
+
         } catch (Exception e) {
+
             draws = new ArrayList<>();
         }
     }
@@ -1271,7 +1692,10 @@ public class MonitorService extends Service {
     private void saveAll() {
 
         SharedPreferences prefs =
-                getSharedPreferences(PREFS, MODE_PRIVATE);
+                getSharedPreferences(
+                        PREFS,
+                        MODE_PRIVATE
+                );
 
         JSONArray history = new JSONArray();
 
@@ -1281,8 +1705,15 @@ public class MonitorService extends Service {
 
                 JSONObject object = new JSONObject();
 
-                object.put("preDrawIssue", d.issue);
-                object.put("preDrawTime", d.time);
+                object.put(
+                        "preDrawIssue",
+                        d.issue
+                );
+
+                object.put(
+                        "preDrawTime",
+                        d.time
+                );
 
                 StringBuilder code = new StringBuilder();
 
@@ -1299,7 +1730,10 @@ public class MonitorService extends Service {
                     code.append(d.code[i]);
                 }
 
-                object.put("preDrawCode", code.toString());
+                object.put(
+                        "preDrawCode",
+                        code.toString()
+                );
 
                 history.put(object);
 
@@ -1320,20 +1754,29 @@ public class MonitorService extends Service {
     }
 
     // =========================
-    // 每分钟自动读取开奖
+    // 后台自动读取开奖
     // =========================
 
     private void checkLatestDraw() {
+
+        if (serviceDestroyed) {
+            return;
+        }
 
         synchronized (lock) {
 
             try {
 
-                updateNotification("正在读取最新开奖和历史数据…");
+                updateNotification(
+                        "正在读取最新开奖和历史数据…"
+                );
 
+                // 读取最新一期和下一期开奖时间
                 JSONObject latestRoot = fetchJSON(API_URL);
 
-                JSONObject latestData = unwrapLatest(latestRoot);
+                JSONObject latestData = unwrapLatest(
+                        latestRoot
+                );
 
                 String issue = latestData.optString(
                         "preDrawIssue",
@@ -1351,6 +1794,16 @@ public class MonitorService extends Service {
                 );
 
                 String drawTime = latestData.optString(
+                        "drawTime",
+                        ""
+                );
+
+                String serverTime = latestData.optString(
+                        "serverTime",
+                        ""
+                );
+
+                String preDrawTime = latestData.optString(
                         "preDrawTime",
                         ""
                 );
@@ -1361,17 +1814,26 @@ public class MonitorService extends Service {
                         || targetIssue.isEmpty()
                         || latestCode == null) {
 
-                    throw new Exception("最新开奖数据格式不正确");
+                    throw new Exception(
+                            "最新开奖数据格式不正确"
+                    );
                 }
 
-                JSONObject historyRoot = fetchJSON(HISTORY_URL);
+                // 读取历史开奖记录
+                JSONObject historyRoot = fetchJSON(
+                        HISTORY_URL
+                );
 
-                JSONArray historyArray = extractHistory(historyRoot);
+                JSONArray historyArray = extractHistory(
+                        historyRoot
+                );
 
                 if (historyArray == null
                         || historyArray.length() == 0) {
 
-                    throw new Exception("历史开奖数据为空");
+                    throw new Exception(
+                            "历史开奖数据为空"
+                    );
                 }
 
                 List<Draw> incoming = new ArrayList<>();
@@ -1389,31 +1851,47 @@ public class MonitorService extends Service {
                 }
 
                 if (incoming.isEmpty()) {
-                    throw new Exception("没有识别到有效历史记录");
+
+                    throw new Exception(
+                            "没有识别到有效历史记录"
+                    );
                 }
 
                 incoming.add(
                         new Draw(
                                 issue,
-                                drawTime,
+                                preDrawTime,
                                 latestCode
                         )
                 );
 
+                // 合并历史，避免重复期号
                 mergeDraws(incoming);
 
+                // 自动结算已开奖的预测
                 boolean settled = settlePredictions();
 
+                // 自动生成下一期预测
                 makeNextPredictions(targetIssue);
 
+                // 保存预测和历史记录
                 saveAll();
 
                 SharedPreferences prefs =
-                        getSharedPreferences(PREFS, MODE_PRIVATE);
+                        getSharedPreferences(
+                                PREFS,
+                                MODE_PRIVATE
+                        );
 
                 prefs.edit()
-                        .putString(KEY_LATEST_ISSUE, issue)
-                        .putString(KEY_LATEST_CODE, code)
+                        .putString(
+                                KEY_LATEST_ISSUE,
+                                issue
+                        )
+                        .putString(
+                                KEY_LATEST_CODE,
+                                code
+                        )
                         .apply();
 
                 String message =
@@ -1431,10 +1909,23 @@ public class MonitorService extends Service {
 
                 updateNotification(message);
 
+                // 根据服务器时间和开奖时间安排下一次检查
+                scheduleNextDrawCheck(
+                        serverTime,
+                        drawTime
+                );
+
             } catch (Exception e) {
 
                 updateNotification(
-                        "后台读取失败，60秒后重试"
+                        "后台读取失败，5秒后重试"
+                );
+
+                // 网络失败或数据格式异常时，5秒后重试
+                scheduleDrawCheck(
+                        TimeUnit.SECONDS.toMillis(
+                                RETRY_SECONDS
+                        )
                 );
             }
         }
@@ -1456,28 +1947,36 @@ public class MonitorService extends Service {
                     );
 
             channel.setDescription(
-                    "每分钟读取开奖数据并生成A、B、C、D预测"
+                    "每30秒普通检查，并根据开奖倒计时自动刷新"
             );
 
             NotificationManager manager =
-                    getSystemService(NotificationManager.class);
+                    getSystemService(
+                            NotificationManager.class
+                    );
 
             if (manager != null) {
+
                 manager.createNotificationChannel(channel);
             }
         }
     }
 
-    private Notification buildNotification(String message) {
+    private Notification buildNotification(
+            String message
+    ) {
 
         Notification.Builder builder;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+
             builder = new Notification.Builder(
                     this,
                     CHANNEL_ID
             );
+
         } else {
+
             builder = new Notification.Builder(this);
         }
 
@@ -1519,13 +2018,27 @@ public class MonitorService extends Service {
             int flags,
             int startId
     ) {
+
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
 
+        serviceDestroyed = true;
+
+        synchronized (lock) {
+
+            if (drawFuture != null) {
+
+                drawFuture.cancel(true);
+
+                drawFuture = null;
+            }
+        }
+
         if (scheduler != null) {
+
             scheduler.shutdownNow();
         }
 
@@ -1534,6 +2047,7 @@ public class MonitorService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
+
         return null;
     }
 }
