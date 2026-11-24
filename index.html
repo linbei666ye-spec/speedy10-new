@@ -36,24 +36,23 @@ button.secondary{background:#293d59}
 .stat span{font-size:10px;color:var(--muted)}
 .green{color:var(--green)}.red{color:var(--red)}
 
-/* 开奖号码：改为彩色方块 */
+/* 全部号码统一为小方块 */
 .balls{display:flex;justify-content:space-between;gap:3px;margin-top:10px}
 .ball{
- width:clamp(24px,8vw,34px);
- height:clamp(24px,8vw,34px);
+ width:25px;
+ height:25px;
  border-radius:2px;
  display:inline-flex;
  align-items:center;
  justify-content:center;
  color:#fff;
  font-weight:bold;
- font-size:14px;
+ font-size:11px;
  flex-shrink:0;
  line-height:1;
- box-shadow:0 1px 2px rgba(0,0,0,.2);
 }
 
-/* 号码颜色，与参考图片保持一致 */
+/* 号码颜色 */
 .ball-1{background:#E5D600}
 .ball-2{background:#168CC9}
 .ball-3{background:#4B4B4B}
@@ -65,31 +64,34 @@ button.secondary{background:#293d59}
 .ball-9{background:#790B0B}
 .ball-10{background:#08B51A}
 
-/* 预测推荐号码方块 */
+/* A、B、C预测号码 */
 .pred-number{
  display:inline-flex;
  align-items:center;
  justify-content:center;
- min-width:42px;
- height:42px;
- padding:0 8px;
- border-radius:3px;
+ width:25px;
+ height:25px;
+ padding:0;
+ border-radius:2px;
  color:#fff;
- font-size:25px;
+ font-size:14px;
  font-weight:bold;
  margin:6px 0;
 }
+
+/* D系统九码 */
 .pred-nine{
  display:flex;
  flex-wrap:wrap;
- gap:5px;
+ gap:4px;
  margin:8px 0;
 }
 .pred-nine .ball{
- width:30px;
- height:30px;
- font-size:13px;
+ width:25px;
+ height:25px;
+ font-size:11px;
 }
+
 .draw{padding:12px 0;border-bottom:1px solid #293950}
 .draw:last-child{border:0}
 .drawhead{display:flex;justify-content:space-between;gap:8px;font-size:12px}
@@ -299,14 +301,8 @@ const COLORS={
 };
 
 const NAMES=[
- "近期冷热频率",
- "遗漏与间隔",
- "近期走势",
- "多窗口融合",
- "周期相似分析",
- "号码转移分析",
- "自适应加权",
- "多模型动态融合"
+ "近期冷热频率","遗漏与间隔","近期走势","多窗口融合",
+ "周期相似分析","号码转移分析","自适应加权","多模型动态融合"
 ];
 
 const MODEL_KEYS=[
@@ -397,7 +393,6 @@ function esc(s){
  }[c]));
 }
 
-/* 所有位置统一使用彩色方块 */
 function ball(n){
  n=Number(n);
  if(!Number.isInteger(n)||n<1||n>10)return "";
@@ -661,11 +656,7 @@ function testNineSystem(data){
  const maxTests=Math.min(120,data.length-minTrain);
 
  const result={
-  hit:0,
-  total:0,
-  rate:0,
-  adjusted:0.90,
-  baseline:0.90
+  hit:0,total:0,rate:0,adjusted:0.90,baseline:0.90
  };
 
  for(let i=0;i<maxTests;i++){
@@ -674,7 +665,6 @@ function testNineSystem(data){
 
   const actualDraw=data[i];
   const choice=chooseNinePosition(train,actualDraw.issue);
-
   const actualNumber=actualDraw.code[choice.position-1];
   const hit=actualNumber!==choice.excluded;
 
