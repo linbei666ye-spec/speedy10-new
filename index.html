@@ -35,12 +35,24 @@ button.secondary{background:#293d59}
 .stat b{display:block;font-size:19px;margin-top:4px}
 .stat span{font-size:10px;color:var(--muted)}
 .green{color:var(--green)}.red{color:var(--red)}
+
+/* 全部号码统一为小方块 */
 .balls{display:flex;justify-content:space-between;gap:3px;margin-top:10px}
 .ball{
- width:25px;height:25px;border-radius:2px;
- display:inline-flex;align-items:center;justify-content:center;
- color:#fff;font-weight:bold;font-size:11px;flex-shrink:0;line-height:1;
+ width:25px;
+ height:25px;
+ border-radius:2px;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ color:#fff;
+ font-weight:bold;
+ font-size:11px;
+ flex-shrink:0;
+ line-height:1;
 }
+
+/* 号码颜色 */
 .ball-1{background:#E5D600}
 .ball-2{background:#168CC9}
 .ball-3{background:#4B4B4B}
@@ -51,13 +63,35 @@ button.secondary{background:#293d59}
 .ball-8{background:#F12B17}
 .ball-9{background:#790B0B}
 .ball-10{background:#08B51A}
+
+/* A、B、C预测号码 */
 .pred-number{
- display:inline-flex;align-items:center;justify-content:center;
- width:25px;height:25px;padding:0;border-radius:2px;
- color:#fff;font-size:14px;font-weight:bold;margin:6px 0;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ width:25px;
+ height:25px;
+ padding:0;
+ border-radius:2px;
+ color:#fff;
+ font-size:14px;
+ font-weight:bold;
+ margin:6px 0;
 }
-.pred-nine{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
-.pred-nine .ball{width:25px;height:25px;font-size:11px}
+
+/* D系统九码 */
+.pred-nine{
+ display:flex;
+ flex-wrap:wrap;
+ gap:4px;
+ margin:8px 0;
+}
+.pred-nine .ball{
+ width:25px;
+ height:25px;
+ font-size:11px;
+}
+
 .draw{padding:12px 0;border-bottom:1px solid #293950}
 .draw:last-child{border:0}
 .drawhead{display:flex;justify-content:space-between;gap:8px;font-size:12px}
@@ -69,7 +103,6 @@ th{color:var(--muted);font-weight:normal}
 .progress i{display:block;height:100%;background:var(--blue)}
 .empty{color:var(--muted);font-size:13px;text-align:center;padding:22px}
 .notice{font-size:11px;color:var(--muted);line-height:1.6}
-.timer-tag{font-size:12px;color:#75e7b8;background:#203c3b;padding:5px 9px;border-radius:7px}
 </style>
 </head>
 <body>
@@ -82,10 +115,7 @@ th{color:var(--muted);font-weight:normal}
   </div>
   <button class="action" onclick="refreshAll()">刷新数据</button>
  </div>
- <div class="row">
-  <div class="status" id="status">等待连接数据</div>
-  <span class="timer-tag" id="timer">倒计时 --:--</span>
- </div>
+ <div class="status" id="status">等待连接数据</div>
 </header>
 
 <main>
@@ -285,15 +315,6 @@ let predictions=[];
 let latest=null;
 let refreshInFlight=false;
 let lastSyncTime=null;
-
-/* 自动刷新与倒计时状态 */
-let normalRefreshTimer=null;
-let countdownTimer=null;
-let retryTimer=null;
-let serverTimeAtSync=null;
-let serverDeadline=null;
-let localTimeAtSync=null;
-let zeroRefreshTriggered=false;
 
 function hasAndroidBridge(){
  return typeof window.Android!=="undefined"
@@ -700,126 +721,51 @@ function makeNextPredictions(targetIssue){
  });
 }
 
-/* 解析服务器时间 */
-function parseServerDate(value){
- if(value===null||value===undefined||value==="")return null;
+function settlePredictions(){
+ const byIssue=new Map(draws.map(d=>[d.issue,d]));
+ let changed=false;
 
- if(typeof value==="number"){
-  return value<100000000000?value*1000:value;
- }
+ predictions.forEach(p=>{
+  if(p.result!=="pending")return;
 
- const str=String(value).trim();
- if(!str)return null;
+  const d=byIssue.get(String(p.target));
+  if(!d)return;
 
- if(/^\d+$/.test(str)){
-  const n=Number(str);
-  return n<100000000000?n*1000:n;
- }
+  let hit=false;
 
- let normalized=str.replace(/-/g,"/");
- let time=Date.parse(normalized);
+  if(p.kind==="D"){
+   if(Number(p.position)>=1&&Number(p.position)<=10){
+    hit=Array.isArray(p.numbers)&&
+     p.numbers.includes(Number(d.code[Number(p.position)-1]));
+   }else{
+    hit=Array.isArray(p.numbers)&&
+     p.numbers.some(n=>d.code.includes(Number(n)));
+   }
+  }else{
+   const positions=p.kind==="A"
+    ?d.code.slice(0,3)
+    :p.kind==="B"
+     ?d.code.slice(0,7)
+     :d.code.slice(1,8);
 
- if(!Number.isFinite(time))time=Date.parse(str);
-
- return Number.isFinite(time)?time:null;
-}
-
-/* 根据服务器时间估算当前时间 */
-function getEstimatedServerNow(){
- if(serverTimeAtSync===null||localTimeAtSync===null){
-  return Date.now();
- }
- return serverTimeAtSync+(Date.now()-localTimeAtSync);
-}
-
-/* 新一期数据到达后，重新同步服务器倒计时 */
-function syncDrawClock(data){
- const serverTime=parseServerDate(data.serverTime);
- const drawTime=parseServerDate(data.drawTime);
-
- if(serverTime!==null&&drawTime!==null){
-  serverTimeAtSync=serverTime;
-  serverDeadline=drawTime;
-  localTimeAtSync=Date.now();
-
-  zeroRefreshTriggered=false;
-
-  if(retryTimer){
-   clearTimeout(retryTimer);
-   retryTimer=null;
-  }
- }
-}
-
-/* 倒计时显示与归零触发 */
-function updateCountdown(){
- const timer=document.getElementById("timer");
- if(!timer)return;
-
- if(serverDeadline===null){
-  timer.textContent="倒计时 --:--";
-  return;
- }
-
- const remaining=serverDeadline-getEstimatedServerNow();
-
- if(remaining<=0){
-  timer.textContent="倒计时 00:00";
-
-  if(!zeroRefreshTriggered){
-   zeroRefreshTriggered=true;
-   document.getElementById("status").textContent=
-    "倒计时结束，正在立即刷新开奖数据…";
-   refreshAll(true);
+   hit=positions.includes(Number(p.number));
   }
 
-  return;
- }
+  p.result=hit?"hit":"miss";
+  p.actual=d.code;
+  p.settledAt=d.time;
+  changed=true;
+ });
 
- const seconds=Math.ceil(remaining/1000);
- const hours=Math.floor(seconds/3600);
- const minutes=Math.floor((seconds%3600)/60);
- const secs=seconds%60;
-
- const display=hours>0
-  ?String(hours).padStart(2,"0")+":"+String(minutes).padStart(2,"0")+":"+String(secs).padStart(2,"0")
-  :String(minutes).padStart(2,"0")+":"+String(secs).padStart(2,"0");
-
- timer.textContent="倒计时 "+display;
+ return changed;
 }
 
-/* 5秒后重试 */
-function scheduleRetry(){
- if(retryTimer)return;
-
- retryTimer=setTimeout(()=>{
-  retryTimer=null;
-  refreshAll(true);
- },5000);
-}
-
-/* 停止倒计时归零后的重试 */
-function stopRetry(){
- if(retryTimer){
-  clearTimeout(retryTimer);
-  retryTimer=null;
- }
-}
-
-/* 自动刷新：普通刷新30秒；归零后每5秒检查 */
-async function refreshAll(fromCountdown=false){
- if(refreshInFlight){
-  if(fromCountdown)scheduleRetry();
-  return;
- }
+async function refreshAll(){
+ if(refreshInFlight)return;
 
  refreshInFlight=true;
  const status=document.getElementById("status");
- const previousIssue=latest?String(latest.issue):"";
-
- status.textContent=fromCountdown
-  ?"正在检查本期开奖数据…"
-  :"正在读取最新开奖和历史数据…";
+ status.textContent="正在读取最新开奖和历史数据…";
 
  try{
   const results=await Promise.all([
@@ -833,16 +779,11 @@ async function refreshAll(fromCountdown=false){
   const latestCode=validCode(current.preDrawCode);
   if(!latestCode)throw new Error("最新开奖号码格式不正确");
 
-  const newLatest={
+  latest={
    issue:String(current.preDrawIssue),
    time:String(current.preDrawTime||""),
    code:latestCode
   };
-
-  const issueChanged=previousIssue!==""&&
-   newLatest.issue!==previousIssue;
-
-  latest=newLatest;
 
   const old=extractHistory(results[1]);
   if(!old.length)throw new Error("历史接口没有识别到有效开奖记录");
@@ -855,44 +796,19 @@ async function refreshAll(fromCountdown=false){
   settlePredictions();
   makeNextPredictions(String(current.drawIssue||""));
 
-  /* 首次读取，或检测到新一期开奖，才重置倒计时 */
-  if(serverDeadline===null||issueChanged){
-   syncDrawClock(current);
-  }
-
-  /* 倒计时归零后，数据未更新就继续5秒重试 */
-  if(fromCountdown){
-   if(issueChanged){
-    stopRetry();
-    zeroRefreshTriggered=false;
-   }else{
-    scheduleRetry();
-   }
-  }else if(issueChanged){
-   stopRetry();
-   zeroRefreshTriggered=false;
-  }
-
   save();
   lastSyncTime=new Date();
   renderAll();
 
-  if(fromCountdown&&!issueChanged){
-   status.textContent="开奖数据暂未更新 · 5秒后继续检查";
-  }else{
-   status.textContent=hasAndroidBridge()
-    ?"同步成功 · Android后台记录已连接 · "+draws.length+"期历史数据"
-    :"数据同步成功 · 已读取 "+draws.length+" 期";
-  }
+  status.textContent=hasAndroidBridge()
+   ?"同步成功 · Android后台记录已连接 · "+draws.length+"期历史数据"
+   :"数据同步成功 · 已读取 "+draws.length+" 期";
 
  }catch(e){
-  status.textContent="读取失败："+e.message+" · 稍后自动重试";
+  status.textContent="读取失败："+e.message+" · 可稍后重试";
 
   if(hasAndroidBridge())syncAndroidData();
   renderAll();
-
-  if(fromCountdown)scheduleRetry();
-
  }finally{
   refreshInFlight=false;
  }
@@ -1135,169 +1051,78 @@ function renderRecords(){
    ?p.numbers.join("、")
    :p.number;
 
-      const statusText=p.result==="pending"
-      ?"待开奖"
-      :p.result==="hit"?"中":"挂";
+  const actual=Array.isArray(p.actual)?p.actual.join("-"):"";
 
-    const detail=p.kind==="D"
-      ?`指定第${p.position}名 · 排除号码 ${p.excluded}`
-      :`推荐号码：${p.number}`;
-
-    const actual=draws.find(d=>String(d.issue)===String(p.target));
-    const actualText=actual
-      ?`开奖号码：${actual.code.join("-")}`
-      :"等待对应期开奖";
-
-    return `
-      <div class="draw">
-        <div class="drawhead">
-          <b>目标第${esc(p.target)}期 · 系统 ${esc(p.kind)}</b>
-          <span class="tag ${cls}">${statusText}</span>
-        </div>
-        <div style="margin:8px 0;font-size:13px">
-          ${esc(detail)}
-        </div>
-        <div class="small">${esc(model)}</div>
-        <div class="small" style="margin-top:5px">${esc(actualText)}</div>
-        <div class="small" style="margin-top:5px">
-          生成时间：${esc(p.created||"")}
-        </div>
-      </div>
-    `;
-  }).join("");
+  return `
+   <div class="draw">
+    <div class="row">
+     <b>系统 ${esc(p.kind)} · 第${esc(p.target)}期</b>
+     <span class="${cls}">${label}</span>
+    </div>
+    <div class="small">
+     推荐位置：${p.kind==="D"
+      ?(p.position?"第"+esc(p.position)+"名":"旧版全位置")
+      :"按系统规则"}
+    　推荐号码：${esc(rec)}　算法：${esc(model)}
+    </div>
+    ${actual?`<div class="small">实际号码：${esc(actual)}</div>`:""}
+   </div>
+  `;
+ }).join("");
 }
 
-/* 开奖后自动判断预测结果 */
-function settlePredictions(){
-  let changed=false;
-
-  predictions.forEach(p=>{
-    if(p.result!=="pending")return;
-
-    const actual=draws.find(
-      d=>String(d.issue)===String(p.target)
-    );
-
-    if(!actual)return;
-
-    let hit=false;
-
-    if(p.kind==="A"||p.kind==="B"||p.kind==="C"){
-      const position=actual.code.indexOf(Number(p.number));
-      hit=isTargetPosition(position,p.kind);
-    }
-
-    if(p.kind==="D"){
-      const position=Number(p.position)-1;
-
-      if(
-        position>=0&&
-        position<10&&
-        Array.isArray(p.numbers)
-      ){
-        hit=p.numbers.includes(Number(actual.code[position]));
-      }
-    }
-
-    p.result=hit?"hit":"miss";
-    p.actual=actual.code.join("-");
-    p.settledAt=new Date().toISOString();
-
-    changed=true;
-  });
-
-  if(changed)save();
-}
-
-/* 清空网页本地预测记录 */
-function clearPredictions(){
-  if(!confirm("确定清空网页本地保存的预测记录吗？"))return;
-
-  predictions=[];
-
-  try{
-    localStorage.removeItem(STORE.predictions);
-  }catch(e){
-    console.log("清空本地预测记录失败",e);
-  }
-
-  renderAll();
-}
-
-/* 更新全部页面 */
 function renderAll(){
-  renderStats();
-  renderLatest();
-  renderPred();
-  renderHistory();
-  renderAnalysis();
-  renderArena();
-  renderRecords();
+ renderStats();
+ renderLatest();
+ renderPred();
+ renderHistory();
+ renderAnalysis();
+ renderArena();
+ renderRecords();
 
-  document.getElementById("dataCount").textContent=
-    draws.length+"期";
+ document.getElementById("dataCount").textContent=draws.length+"期";
 
-  document.getElementById("dataInfo").textContent=
-    "历史数据："+draws.length+
-    "期 · 最近同步："+(lastSyncTime
-      ?lastSyncTime.toLocaleString()
-      :"尚未同步");
+ const syncText=lastSyncTime
+  ?"最近同步："+lastSyncTime.toLocaleString()
+  :"尚未完成同步";
 
-  updateCountdown();
+ const backgroundText=hasAndroidBridge()
+  ?"Android后台记录已连接；后台服务负责自动预测和结算。"
+  :"当前为普通网页模式，关闭网页后不会在后台自动运行。";
+
+ document.getElementById("dataInfo").textContent=
+  "本机最多保存最近500期有效记录；首页展示最近15期。"+
+  syncText+"。"+backgroundText;
 }
 
-/* 页面启动：读取本地记录 */
-function initializeApp(){
-  draws=load(STORE.history,[])
-    .map(normalizeDraw)
-    .filter(Boolean)
-    .sort(issueSort)
-    .slice(0,500);
+function clearPredictions(){
+ if(!confirm("确定清空网页本地预测记录吗？Android后台保存的记录不会被删除。"))return;
 
-  predictions=load(STORE.predictions,[]);
-
-  if(!Array.isArray(predictions))predictions=[];
-
-  if(hasAndroidBridge()){
-    syncAndroidData();
-  }
-
-  latest=draws.length?draws[0]:null;
-
-  renderAll();
-
-  /* 每秒更新倒计时 */
-  if(countdownTimer)clearInterval(countdownTimer);
-
-  countdownTimer=setInterval(()=>{
-    updateCountdown();
-  },1000);
-
-  /* 每30秒自动刷新最新数据和历史数据 */
-  if(normalRefreshTimer)clearInterval(normalRefreshTimer);
-
-  normalRefreshTimer=setInterval(()=>{
-    refreshAll(false);
-  },30000);
-
-  /* 从后台返回页面时立即刷新 */
-  document.addEventListener("visibilitychange",()=>{
-    if(!document.hidden){
-      refreshAll(false);
-    }
-  });
-
-  window.addEventListener("pageshow",()=>{
-    refreshAll(false);
-  });
-
-  /* 打开页面后立即刷新一次 */
-  refreshAll(false);
+ predictions=[];
+ save();
+ renderAll();
 }
 
-/* 启动 */
-initializeApp();
+draws=load(STORE.history,[]);
+predictions=load(STORE.predictions,[]);
 
+draws=draws.map(normalizeDraw).filter(Boolean)
+ .sort(issueSort).slice(0,500);
+
+if(hasAndroidBridge())syncAndroidData();
+
+renderAll();
+refreshAll();
+
+document.addEventListener("visibilitychange",()=>{
+ if(document.visibilityState==="visible")refreshAll();
+});
+
+window.addEventListener("pageshow",()=>refreshAll());
+
+setInterval(()=>{
+ if(document.visibilityState==="visible")refreshAll();
+},60000);
 </script>
 </body>
 </html>
