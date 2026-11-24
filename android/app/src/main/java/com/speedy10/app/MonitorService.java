@@ -83,8 +83,19 @@ public class MonitorService extends Service {
                 buildNotification("正在启动后台预测监控…")
         );
 
-        scheduler = Executors.newSingleThreadScheduledExecutor();
+        // 后台低优先级线程，尽量减少对界面操作的影响。
+        scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(() -> {
+                android.os.Process.setThreadPriority(
+                        android.os.Process.THREAD_PRIORITY_BACKGROUND
+                );
+                r.run();
+            }, "speedy10-monitor");
 
+            return t;
+        });
+
+        // 启动后立即检查，之后每次完成检查再等待60秒。
         scheduler.scheduleWithFixedDelay(
                 this::checkLatestDraw,
                 0,
@@ -493,8 +504,6 @@ public class MonitorService extends Service {
             );
 
             // 模型6：号码转移分析
-            // 使用上一期所在区域作为条件，
-            // 统计后续一期进入目标名次范围的比例。
             int transitionHits = 0;
             int transitionTotal = 0;
 
@@ -504,8 +513,6 @@ public class MonitorService extends Service {
 
                 for (int i = 1; i < positions.size(); i++) {
 
-                    // positions[i] 是较早一期
-                    // positions[i - 1] 是紧接着的较新一期
                     int earlierZone = zone(positions.get(i));
 
                     if (earlierZone == currentZone) {
@@ -555,13 +562,10 @@ public class MonitorService extends Service {
         return scores;
     }
 
-    private int rankFor(
-            List<Draw> data,
-            String kind,
+    private int bestNumberForScores(
+            double[][] scores,
             int model
     ) {
-        double[][] scores = scoreNumbers(data, kind);
-
         int bestNumber = 1;
         double bestScore = scores[1][model];
 
@@ -577,8 +581,18 @@ public class MonitorService extends Service {
         return bestNumber;
     }
 
+    private int rankFor(
+            List<Draw> data,
+            String kind,
+            int model
+    ) {
+        double[][] scores = scoreNumbers(data, kind);
+
+        return bestNumberForScores(scores, model);
+    }
+
     // =========================
-    // 历史滚动回测
+    // 历史滚动回测（优化版）
     // =========================
 
     private static class ModelResult {
@@ -606,7 +620,8 @@ public class MonitorService extends Service {
         }
 
         // 数据按最新到最旧排列。
-        // 测试第i期时，只使用它之前已经发生的旧数据。
+        // 每一期只计算一次评分矩阵，
+        // 同时供八种模型使用。
         for (int i = 0; i < maxTests; i++) {
 
             List<Draw> train = data.subList(
@@ -618,11 +633,15 @@ public class MonitorService extends Service {
                 continue;
             }
 
+            // 关键优化：不再为每个模型重复计算scoreNumbers。
+            double[][] scores = scoreNumbers(train, kind);
+
             int[] actual = data.get(i).code;
 
             for (int m = 0; m < MODEL_COUNT; m++) {
 
-                int predicted = rankFor(train, kind, m);
+                int predicted = bestNumberForScores(scores, m);
+
                 boolean hit = false;
 
                 for (int j = 0; j < 10; j++) {
@@ -642,7 +661,7 @@ public class MonitorService extends Service {
             }
         }
 
-        // 向理论基础概率收缩，减少小样本偶然高命中造成的误选。
+        // 保留原有收缩计算规则。
         for (int m = 0; m < MODEL_COUNT; m++) {
 
             ModelResult x = result[m];
@@ -699,8 +718,6 @@ public class MonitorService extends Service {
         }
     }
 
-    // 根据训练数据选择名次和排除号码。
-    // source必须是预测目标之前已经发生的数据。
     private NineChoice chooseNinePosition(
             List<Draw> source,
             String seed
@@ -796,9 +813,6 @@ public class MonitorService extends Service {
         );
     }
 
-    // D系统滚动样本外验证。
-    // 每次先用较早的数据选择名次和排除号码，
-    // 再用紧接着的一期开奖检验。
     private double testNineOutOfSample(List<Draw> data) {
 
         int maxTests = Math.max(
@@ -905,7 +919,6 @@ public class MonitorService extends Service {
                     target
             );
 
-            // 九码：1至10排除一个号码。
             JSONArray numbers = new JSONArray();
 
             for (int n = 1; n <= 10; n++) {
@@ -914,8 +927,6 @@ public class MonitorService extends Service {
                 }
             }
 
-            // 使用滚动样本外结果作为验证率，
-            // 不把训练集内选择出来的最高比例冒充预测命中率。
             double validationRate = testNineOutOfSample(draws);
 
             JSONObject p = new JSONObject();
@@ -1051,7 +1062,6 @@ public class MonitorService extends Service {
             return;
         }
 
-        // A、B、C系统：每期每个系统只生成一条预测。
         for (String kind : new String[]{"A", "B", "C"}) {
 
             if (!predictionExists(targetIssue, kind)) {
@@ -1077,7 +1087,6 @@ public class MonitorService extends Service {
                 targetIssue
         );
 
-        // D系统：每期只生成一条九码预测。
         if (!predictionExists(targetIssue, "D")) {
             addNineNumberPrediction(targetIssue);
         }
@@ -1161,8 +1170,6 @@ public class MonitorService extends Service {
 
                 } else if (numbers != null) {
 
-                    // 旧版D记录没有指定名次时，
-                    // 继续按原来的全位置规则结算。
                     for (int j = 0;
                          j < numbers.length() && !hit;
                          j++) {
@@ -1251,7 +1258,6 @@ public class MonitorService extends Service {
 
             draws = loaded;
 
-            // 确保本机历史记录也是最新期在前。
             Collections.sort(
                     draws,
                     (a, b) -> compareIssue(a.issue, b.issue)
@@ -1386,7 +1392,6 @@ public class MonitorService extends Service {
                     throw new Exception("没有识别到有效历史记录");
                 }
 
-                // 加入最新一期，并合并去重。
                 incoming.add(
                         new Draw(
                                 issue,
@@ -1397,13 +1402,10 @@ public class MonitorService extends Service {
 
                 mergeDraws(incoming);
 
-                // 先结算已经开奖的预测。
                 boolean settled = settlePredictions();
 
-                // 再生成下一期预测。
                 makeNextPredictions(targetIssue);
 
-                // 保存全部记录。
                 saveAll();
 
                 SharedPreferences prefs =
