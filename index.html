@@ -192,10 +192,19 @@ th{color:var(--muted);font-weight:normal}
   <div id="arenaC"></div>
  </div>
  <div class="card">
+  <h2>系统 D · 指定名次九码擂台</h2>
+  <div class="notice">
+   每一期只使用该期之前最多100期数据，重新选择历史覆盖率最高的名次，
+   排除该名次出现次数最少的数字，再检查实际开奖的指定名次是否命中九码。
+   并列名次使用该期编号进行稳定随机选择，保证回测结果可重复。
+  </div>
+  <div id="arenaD"></div>
+ </div>
+ <div class="card">
   <h2>理论随机基线</h2>
   <div class="notice">
    假设每期1～10随机排列，单个号码进入前三名的理论概率约30%，
-   进入前七名约70%。
+   进入前七名约70%。九码在指定名次的理论覆盖率为90%。
   </div>
  </div>
 </section>
@@ -536,11 +545,22 @@ function chooseModel(data,kind){
  return {model:best,tests};
 }
 
-function chooseNinePosition(data){
+/*
+ * D系统位置选择：
+ * 1. 统计最近100期每个名次的数字次数。
+ * 2. 找出每个名次出现次数最少的数字作为排除数字。
+ * 3. 计算九码历史覆盖率。
+ * 4. 并列最高时随机选择一个名次。
+ *
+ * seed用于历史回测，让每次回测结果保持一致；
+ * 实际生成新预测时不传seed，使用随机选择。
+ */
+function chooseNinePosition(data,seed=null){
  const sample=data.slice(0,100);
- let best={position:1,excluded:1,rate:-1};
-
  if(!sample.length)return {position:1,excluded:1,rate:0};
+
+ let bestRate=-1;
+ const candidates=[];
 
  for(let pos=0;pos<10;pos++){
   const counts=Array(11).fill(0);
@@ -550,19 +570,79 @@ function chooseNinePosition(data){
    if(n>=1&&n<=10)counts[n]++;
   });
 
-  let excluded=1;
+  let minCount=counts[1];
   for(let n=2;n<=10;n++){
-   if(counts[n]<counts[excluded])excluded=n;
+   if(counts[n]<minCount)minCount=counts[n];
   }
 
-  const rate=1-counts[excluded]/sample.length;
+  const excludedNumbers=[];
+  for(let n=1;n<=10;n++){
+   if(counts[n]===minCount)excludedNumbers.push(n);
+  }
 
-  if(rate>best.rate){
-   best={position:pos+1,excluded,rate};
+  const excluded=excludedNumbers[0];
+  const rate=1-minCount/sample.length;
+
+  if(rate>bestRate){
+   bestRate=rate;
+   candidates.length=0;
+   candidates.push({position:pos+1,excluded,rate});
+  }else if(Math.abs(rate-bestRate)<1e-12){
+   candidates.push({position:pos+1,excluded,rate});
   }
  }
 
- return best;
+ if(candidates.length===1)return candidates[0];
+
+ let index;
+
+ if(seed!==null&&seed!==undefined){
+  const str=String(seed);
+  let hash=0;
+  for(let i=0;i<str.length;i++){
+   hash=((hash<<5)-hash+str.charCodeAt(i))|0;
+  }
+  index=Math.abs(hash)%candidates.length;
+ }else{
+  index=Math.floor(Math.random()*candidates.length);
+ }
+
+ return candidates[index];
+}
+
+/* D系统滚动回测 */
+function testNineSystem(data){
+ const minTrain=30;
+ const maxTests=Math.min(120,data.length-minTrain);
+
+ const result={
+  hit:0,
+  total:0,
+  rate:0,
+  adjusted:0.90,
+  baseline:0.90
+ };
+
+ for(let i=0;i<maxTests;i++){
+  const train=data.slice(i+1);
+  if(train.length<minTrain)continue;
+
+  const actualDraw=data[i];
+  const choice=chooseNinePosition(train,actualDraw.issue);
+
+  const actualNumber=actualDraw.code[choice.position-1];
+  const hit=actualNumber!==choice.excluded;
+
+  result.total++;
+  if(hit)result.hit++;
+ }
+
+ result.rate=result.total?result.hit/result.total:0;
+ result.adjusted=result.total
+  ?(result.rate*result.total+0.90*30)/(result.total+30)
+  :0.90;
+
+ return result;
 }
 
 function makeNextPredictions(targetIssue){
@@ -828,6 +908,9 @@ function renderArena(){
    document.getElementById(id).innerHTML=
     '<div class="empty">至少需要35期有效开奖记录才能进行初步回测</div>';
   });
+
+  document.getElementById("arenaD").innerHTML=
+   '<div class="empty">至少需要35期有效开奖记录才能进行D系统回测</div>';
   return;
  }
 
@@ -856,6 +939,41 @@ function renderArena(){
    `;
   }).join("");
  }
+
+ const d=testNineSystem(draws);
+ const dEl=document.getElementById("arenaD");
+
+ dEl.innerHTML=`
+  <div class="stats">
+   <div class="stat">
+    <span>累计命中</span>
+    <b class="green">${d.hit}</b>
+   </div>
+   <div class="stat">
+    <span>累计未中</span>
+    <b class="red">${d.total-d.hit}</b>
+   </div>
+   <div class="stat">
+    <span>历史命中率</span>
+    <b>${(d.rate*100).toFixed(1)}%</b>
+   </div>
+  </div>
+  <div style="padding:12px 0">
+   <div class="row">
+    <b>系统 D · 指定名次九码</b>
+    <span>${(d.rate*100).toFixed(1)}%</span>
+   </div>
+   <div class="progress">
+    <i style="width:${Math.min(100,d.rate*100)}%"></i>
+   </div>
+   <div class="small">
+    命中 ${d.hit} / 回测 ${d.total} 期
+   </div>
+   <div class="small">
+    理论随机基线：90% · 基线调整评分：${(d.adjusted*100).toFixed(1)}%
+   </div>
+  </div>
+ `;
 }
 
 function renderRecords(){
