@@ -35,8 +35,61 @@ button.secondary{background:#293d59}
 .stat b{display:block;font-size:19px;margin-top:4px}
 .stat span{font-size:10px;color:var(--muted)}
 .green{color:var(--green)}.red{color:var(--red)}
+
+/* 开奖号码：改为彩色方块 */
 .balls{display:flex;justify-content:space-between;gap:3px;margin-top:10px}
-.ball{width:clamp(24px,8vw,34px);height:clamp(24px,8vw,34px);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:12px;flex-shrink:0}
+.ball{
+ width:clamp(24px,8vw,34px);
+ height:clamp(24px,8vw,34px);
+ border-radius:2px;
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ color:#fff;
+ font-weight:bold;
+ font-size:14px;
+ flex-shrink:0;
+ line-height:1;
+ box-shadow:0 1px 2px rgba(0,0,0,.2);
+}
+
+/* 号码颜色，与参考图片保持一致 */
+.ball-1{background:#E5D600}
+.ball-2{background:#168CC9}
+.ball-3{background:#4B4B4B}
+.ball-4{background:#F58200}
+.ball-5{background:#21C8C9}
+.ball-6{background:#5536E8}
+.ball-7{background:#BDBDBD}
+.ball-8{background:#F12B17}
+.ball-9{background:#790B0B}
+.ball-10{background:#08B51A}
+
+/* 预测推荐号码方块 */
+.pred-number{
+ display:inline-flex;
+ align-items:center;
+ justify-content:center;
+ min-width:42px;
+ height:42px;
+ padding:0 8px;
+ border-radius:3px;
+ color:#fff;
+ font-size:25px;
+ font-weight:bold;
+ margin:6px 0;
+}
+.pred-nine{
+ display:flex;
+ flex-wrap:wrap;
+ gap:5px;
+ margin:8px 0;
+}
+.pred-nine .ball{
+ width:30px;
+ height:30px;
+ font-size:13px;
+}
 .draw{padding:12px 0;border-bottom:1px solid #293950}
 .draw:last-child{border:0}
 .drawhead{display:flex;justify-content:space-between;gap:8px;font-size:12px}
@@ -88,7 +141,7 @@ th{color:var(--muted);font-weight:normal}
    </div>
    <div class="pred">
     <div class="name">系统 D · 指定名次九码</div>
-    <div class="num" id="predD" style="font-size:22px">--</div>
+    <div class="pred-nine" id="predD">--</div>
     <div class="small" id="algoD">等待分析</div>
    </div>
   </div>
@@ -241,8 +294,8 @@ const STORE={
 };
 
 const COLORS={
- 1:"#E74C3C",2:"#3498DB",3:"#27AE60",4:"#F39C12",5:"#9B59B6",
- 6:"#16A085",7:"#E84393",8:"#795548",9:"#34495E",10:"#607D8B"
+ 1:"#E5D600",2:"#168CC9",3:"#4B4B4B",4:"#F58200",5:"#21C8C9",
+ 6:"#5536E8",7:"#BDBDBD",8:"#F12B17",9:"#790B0B",10:"#08B51A"
 };
 
 const NAMES=[
@@ -344,8 +397,11 @@ function esc(s){
  }[c]));
 }
 
+/* 所有位置统一使用彩色方块 */
 function ball(n){
- return `<span class="ball" style="background:${COLORS[n]}">${n}</span>`;
+ n=Number(n);
+ if(!Number.isInteger(n)||n<1||n>10)return "";
+ return `<span class="ball ball-${n}">${n}</span>`;
 }
 
 function validCode(code){
@@ -545,16 +601,6 @@ function chooseModel(data,kind){
  return {model:best,tests};
 }
 
-/*
- * D系统位置选择：
- * 1. 统计最近100期每个名次的数字次数。
- * 2. 找出每个名次出现次数最少的数字作为排除数字。
- * 3. 计算九码历史覆盖率。
- * 4. 并列最高时随机选择一个名次。
- *
- * seed用于历史回测，让每次回测结果保持一致；
- * 实际生成新预测时不传seed，使用随机选择。
- */
 function chooseNinePosition(data,seed=null){
  const sample=data.slice(0,100);
  if(!sample.length)return {position:1,excluded:1,rate:0};
@@ -602,7 +648,7 @@ function chooseNinePosition(data,seed=null){
   for(let i=0;i<str.length;i++){
    hash=((hash<<5)-hash+str.charCodeAt(i))|0;
   }
-  index=Math.abs(hash)%candidates.length;
+  index=Math.floor(Math.abs(hash)%candidates.length);
  }else{
   index=Math.floor(Math.random()*candidates.length);
  }
@@ -610,7 +656,6 @@ function chooseNinePosition(data,seed=null){
  return candidates[index];
 }
 
-/* D系统滚动回测 */
 function testNineSystem(data){
  const minTrain=30;
  const maxTests=Math.min(120,data.length-minTrain);
@@ -819,18 +864,33 @@ function renderLatest(){
 }
 
 function renderPred(){
- for(const k of ["A","B","C","D"]){
+ for(const k of ["A","B","C"]){
   const p=predictions.find(x=>x.kind===k&&x.result==="pending");
+  const el=document.getElementById("pred"+k);
 
-  document.getElementById("pred"+k).textContent=
-   !p?"--":k==="D"?p.numbers.join("、"):p.number;
+  if(!p){
+   el.textContent="--";
+  }else{
+   el.innerHTML=`<span class="pred-number ball-${Number(p.number)}">${esc(p.number)}</span>`;
+  }
 
   document.getElementById("algo"+k).textContent=
    !p?"等待生成预测":
-   (k==="D"
-    ?"推荐位置：第"+(p.position||"--")+"名 · 排除："+(p.excluded||"--")
-    :"算法："+(NAMES[MODEL_KEYS.indexOf(p.model)]||p.model));
+   "算法："+(NAMES[MODEL_KEYS.indexOf(p.model)]||p.model);
  }
+
+ const pD=predictions.find(x=>x.kind==="D"&&x.result==="pending");
+ const dEl=document.getElementById("predD");
+
+ if(!pD){
+  dEl.textContent="--";
+ }else{
+  dEl.innerHTML=pD.numbers.map(ball).join("");
+ }
+
+ document.getElementById("algoD").textContent=
+  !pD?"等待分析":
+  "推荐位置：第"+(pD.position||"--")+"名 · 排除："+(pD.excluded||"--");
 
  const a=predictions.find(p=>p.kind==="A"&&p.result==="pending");
 
