@@ -52,11 +52,6 @@ public class MonitorService extends Service {
             "cycle", "transition", "adaptive", "ensemble"
     };
 
-    private static final String[] MODEL_NAMES = {
-            "近期冷热频率", "遗漏与间隔", "近期走势", "多窗口融合",
-            "周期相似分析", "号码转移分析", "自适应加权", "多模型动态融合"
-    };
-
     private ScheduledExecutorService scheduler;
     private final Object lock = new Object();
 
@@ -492,50 +487,71 @@ public class MonitorService extends Service {
         }
     }
 
-    private NineChoice chooseNinePosition() {
-        int sampleSize = Math.min(100, draws.size());
+    private NineChoice chooseNinePosition(List<Draw> source, String seed) {
+        int sampleSize = Math.min(100, source.size());
 
         if (sampleSize == 0) {
             return new NineChoice(1, 1, 0.0);
         }
 
-        int bestPosition = 1;
-        int bestExcluded = 1;
         double bestRate = -1.0;
+        List<Integer> bestPositions = new ArrayList<>();
+        int[] excludedByPosition = new int[10];
+        double[] rateByPosition = new double[10];
 
         for (int pos = 0; pos < 10; pos++) {
             int[] counts = new int[11];
 
             for (int i = 0; i < sampleSize; i++) {
-                int n = draws.get(i).code[pos];
+                int n = source.get(i).code[pos];
+                if (n >= 1 && n <= 10) counts[n]++;
+            }
 
-                if (n >= 1 && n <= 10) {
-                    counts[n]++;
+            int minCount = Integer.MAX_VALUE;
+            List<Integer> excludedCandidates = new ArrayList<>();
+
+            for (int n = 1; n <= 10; n++) {
+                if (counts[n] < minCount) {
+                    minCount = counts[n];
+                    excludedCandidates.clear();
+                    excludedCandidates.add(n);
+                } else if (counts[n] == minCount) {
+                    excludedCandidates.add(n);
                 }
             }
 
-            int excluded = 1;
+            int hash = (seed + "-" + (pos + 1)).hashCode();
+            int excludedIndex = Math.floorMod(
+                    hash, excludedCandidates.size()
+            );
 
-            for (int n = 2; n <= 10; n++) {
-                if (counts[n] < counts[excluded]) {
-                    excluded = n;
-                }
-            }
+            int excluded = excludedCandidates.get(excludedIndex);
 
-            double rate =
+            double currentRate =
                     1.0 - counts[excluded] / (double) sampleSize;
 
-            if (rate > bestRate) {
-                bestRate = rate;
-                bestPosition = pos + 1;
-                bestExcluded = excluded;
+            excludedByPosition[pos] = excluded;
+            rateByPosition[pos] = currentRate;
+
+            int comparison = Double.compare(currentRate, bestRate);
+
+            if (comparison > 0) {
+                bestRate = currentRate;
+                bestPositions.clear();
+                bestPositions.add(pos);
+            } else if (comparison == 0) {
+                bestPositions.add(pos);
             }
         }
 
+        int seedHash = seed.hashCode();
+        int chosenIndex = Math.floorMod(seedHash, bestPositions.size());
+        int chosenPosition = bestPositions.get(chosenIndex);
+
         return new NineChoice(
-                bestPosition,
-                bestExcluded,
-                bestRate
+                chosenPosition + 1,
+                excludedByPosition[chosenPosition],
+                rateByPosition[chosenPosition]
         );
     }
 
@@ -572,7 +588,7 @@ public class MonitorService extends Service {
 
     private void addNineNumberPrediction(String target) {
         try {
-            NineChoice choice = chooseNinePosition();
+            NineChoice choice = chooseNinePosition(draws, target);
 
             JSONArray numbers = new JSONArray();
 
@@ -597,6 +613,51 @@ public class MonitorService extends Service {
             prependPrediction(p);
         } catch (Exception ignored) {
         }
+    }
+
+    // 将尚未开奖的旧版D记录升级为新版
+
+    private boolean upgradePendingNinePredictions(String target) {
+        boolean changed = false;
+
+        if (draws.isEmpty()) return false;
+
+        for (int i = 0; i < predictions.length(); i++) {
+            JSONObject p = predictions.optJSONObject(i);
+            if (p == null) continue;
+
+            if (!"D".equals(p.optString("kind"))) continue;
+            if (!"pending".equals(p.optString("result"))) continue;
+            if (!target.equals(p.optString("target"))) continue;
+
+            int oldPosition = p.optInt("position", 0);
+
+            if (oldPosition >= 1 && oldPosition <= 10) {
+                continue;
+            }
+
+            try {
+                NineChoice choice = chooseNinePosition(draws, target);
+                JSONArray numbers = new JSONArray();
+
+                for (int n = 1; n <= 10; n++) {
+                    if (n != choice.excluded) numbers.put(n);
+                }
+
+                p.put("base", draws.get(0).issue);
+                p.put("position", choice.position);
+                p.put("numbers", numbers);
+                p.put("excluded", choice.excluded);
+                p.put("positionRate", choice.rate);
+                p.put("model", "历史位置九码分析");
+                p.put("upgraded", true);
+
+                changed = true;
+            } catch (Exception ignored) {
+            }
+        }
+
+        return changed;
     }
 
     private void prependPrediction(JSONObject p) {
@@ -634,8 +695,14 @@ public class MonitorService extends Service {
             }
         }
 
+        boolean upgraded = upgradePendingNinePredictions(targetIssue);
+
         if (!predictionExists(targetIssue, "D")) {
             addNineNumberPrediction(targetIssue);
+        }
+
+        if (upgraded) {
+            updateNotification("D系统旧版待开奖记录已升级");
         }
     }
 
@@ -893,31 +960,4 @@ public class MonitorService extends Service {
         return builder.build();
     }
 
-    private void updateNotification(String message) {
-        NotificationManager manager =
-                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-
-        if (manager != null) {
-            manager.notify(
-                    NOTIFICATION_ID,
-                    buildNotification(message)
-            );
-        }
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        return START_STICKY;
-    }
-
-    @Override
-    public void onDestroy() {
-        if (scheduler != null) scheduler.shutdownNow();
-        super.onDestroy();
-    }
-
-    @Override
-    public IBinder onBind(Intent intent) {
-        return null;
-    }
-}
+    private void updateNotification(String messa
