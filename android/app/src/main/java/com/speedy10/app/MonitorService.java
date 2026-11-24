@@ -478,6 +478,67 @@ public class MonitorService extends Service {
         return best;
     }
 
+    // D系统：最近100期指定名次九码分析
+
+    private static class NineChoice {
+        int position;
+        int excluded;
+        double rate;
+
+        NineChoice(int position, int excluded, double rate) {
+            this.position = position;
+            this.excluded = excluded;
+            this.rate = rate;
+        }
+    }
+
+    private NineChoice chooseNinePosition() {
+        int sampleSize = Math.min(100, draws.size());
+
+        if (sampleSize == 0) {
+            return new NineChoice(1, 1, 0.0);
+        }
+
+        int bestPosition = 1;
+        int bestExcluded = 1;
+        double bestRate = -1.0;
+
+        for (int pos = 0; pos < 10; pos++) {
+            int[] counts = new int[11];
+
+            for (int i = 0; i < sampleSize; i++) {
+                int n = draws.get(i).code[pos];
+
+                if (n >= 1 && n <= 10) {
+                    counts[n]++;
+                }
+            }
+
+            int excluded = 1;
+
+            for (int n = 2; n <= 10; n++) {
+                if (counts[n] < counts[excluded]) {
+                    excluded = n;
+                }
+            }
+
+            double rate =
+                    1.0 - counts[excluded] / (double) sampleSize;
+
+            if (rate > bestRate) {
+                bestRate = rate;
+                bestPosition = pos + 1;
+                bestExcluded = excluded;
+            }
+        }
+
+        return new NineChoice(
+                bestPosition,
+                bestExcluded,
+                bestRate
+        );
+    }
+
     // 预测记录
 
     private boolean predictionExists(String target, String kind) {
@@ -511,22 +572,28 @@ public class MonitorService extends Service {
 
     private void addNineNumberPrediction(String target) {
         try {
-            int excluded = 1 + (int) (Math.random() * 10);
+            NineChoice choice = chooseNinePosition();
+
             JSONArray numbers = new JSONArray();
 
             for (int n = 1; n <= 10; n++) {
-                if (n != excluded) numbers.put(n);
+                if (n != choice.excluded) {
+                    numbers.put(n);
+                }
             }
 
             JSONObject p = new JSONObject();
             p.put("kind", "D");
             p.put("target", target);
             p.put("base", draws.get(0).issue);
+            p.put("position", choice.position);
             p.put("numbers", numbers);
-            p.put("excluded", excluded);
-            p.put("model", "nine_random_exclusion");
+            p.put("excluded", choice.excluded);
+            p.put("positionRate", choice.rate);
+            p.put("model", "历史位置九码分析");
             p.put("result", "pending");
             p.put("created", System.currentTimeMillis());
+
             prependPrediction(p);
         } catch (Exception ignored) {
         }
@@ -599,10 +666,22 @@ public class MonitorService extends Service {
 
             if ("D".equals(kind)) {
                 JSONArray numbers = p.optJSONArray("numbers");
+                int position = p.optInt("position", 0);
 
-                if (numbers != null) {
+                if (numbers != null && position >= 1 && position <= 10) {
+                    int actualAtPosition = d.code[position - 1];
+
+                    for (int j = 0; j < numbers.length(); j++) {
+                        if (numbers.optInt(j, -1) == actualAtPosition) {
+                            hit = true;
+                            break;
+                        }
+                    }
+                } else if (numbers != null) {
+                    // 旧版没有position的记录，保留旧版全位置结算方式
                     for (int j = 0; j < numbers.length() && !hit; j++) {
                         int n = numbers.optInt(j, -1);
+
                         for (int actual : d.code) {
                             if (actual == n) {
                                 hit = true;
