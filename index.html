@@ -35,24 +35,13 @@ button.secondary{background:#293d59}
 .stat b{display:block;font-size:19px;margin-top:4px}
 .stat span{font-size:10px;color:var(--muted)}
 .green{color:var(--green)}.red{color:var(--red)}
-
-/* 全部号码统一为小方块 */
 .balls{display:flex;justify-content:space-between;gap:3px;margin-top:10px}
 .ball{
- width:25px;
- height:25px;
- border-radius:2px;
- display:inline-flex;
- align-items:center;
- justify-content:center;
- color:#fff;
- font-weight:bold;
- font-size:11px;
- flex-shrink:0;
- line-height:1;
+ width:25px;height:25px;border-radius:2px;
+ display:inline-flex;align-items:center;justify-content:center;
+ color:#fff;font-weight:bold;font-size:11px;
+ flex-shrink:0;line-height:1;
 }
-
-/* 号码颜色 */
 .ball-1{background:#E5D600}
 .ball-2{background:#168CC9}
 .ball-3{background:#4B4B4B}
@@ -63,35 +52,13 @@ button.secondary{background:#293d59}
 .ball-8{background:#F12B17}
 .ball-9{background:#790B0B}
 .ball-10{background:#08B51A}
-
-/* A、B、C预测号码 */
 .pred-number{
- display:inline-flex;
- align-items:center;
- justify-content:center;
- width:25px;
- height:25px;
- padding:0;
- border-radius:2px;
- color:#fff;
- font-size:14px;
- font-weight:bold;
- margin:6px 0;
+ display:inline-flex;align-items:center;justify-content:center;
+ width:25px;height:25px;padding:0;border-radius:2px;
+ color:#fff;font-size:14px;font-weight:bold;margin:6px 0;
 }
-
-/* D系统九码 */
-.pred-nine{
- display:flex;
- flex-wrap:wrap;
- gap:4px;
- margin:8px 0;
-}
-.pred-nine .ball{
- width:25px;
- height:25px;
- font-size:11px;
-}
-
+.pred-nine{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
+.pred-nine .ball{width:25px;height:25px;font-size:11px}
 .draw{padding:12px 0;border-bottom:1px solid #293950}
 .draw:last-child{border:0}
 .drawhead{display:flex;justify-content:space-between;gap:8px;font-size:12px}
@@ -116,10 +83,24 @@ th{color:var(--muted);font-weight:normal}
   <button class="action" onclick="refreshAll()">刷新数据</button>
  </div>
  <div class="status" id="status">等待连接数据</div>
+ <div class="sub" id="countdown" style="margin-top:9px;font-size:14px;color:#65a9ff">
+  距离下期开奖：等待开奖时间
+ </div>
 </header>
 
 <main>
 <section id="home" class="page active">
+
+ <!-- 最新开奖结果：移动到智能预测推荐上面 -->
+ <div class="card">
+  <div class="row">
+   <h2>最新开奖结果</h2>
+   <span class="tag" id="latestIssue">--</span>
+  </div>
+  <div class="small" id="latestTime">等待数据</div>
+  <div class="balls" id="latestBalls"></div>
+ </div>
+
  <div class="card">
   <div class="row">
    <h2>智能预测推荐</h2>
@@ -187,15 +168,6 @@ th{color:var(--muted);font-weight:normal}
    <div class="stat"><span>命中率</span><b id="dRate">--%</b></div>
   </div>
   <div class="notice">只检查本期推荐的指定名次，实际号码在九码内显示「中」，否则显示「挂」。历史覆盖率不代表未来结果。</div>
- </div>
-
- <div class="card">
-  <div class="row">
-   <h2>最新开奖结果</h2>
-   <span class="tag" id="latestIssue">--</span>
-  </div>
-  <div class="small" id="latestTime">等待数据</div>
-  <div class="balls" id="latestBalls"></div>
  </div>
 
  <div class="card">
@@ -315,6 +287,12 @@ let predictions=[];
 let latest=null;
 let refreshInFlight=false;
 let lastSyncTime=null;
+
+let normalRefreshTimer=null;
+let countdownTimer=null;
+let retryTimer=null;
+let serverDeadline=null;
+let zeroRefreshTriggered=false;
 
 function hasAndroidBridge(){
  return typeof window.Android!=="undefined"
@@ -760,10 +738,88 @@ function settlePredictions(){
  return changed;
 }
 
-async function refreshAll(){
- if(refreshInFlight)return;
+/* 自动刷新与倒计时 */
+function parseTimeValue(value){
+ if(value===null||value===undefined||value==="")return null;
+
+ if(typeof value==="number"||/^\d+$/.test(String(value).trim())){
+  let n=Number(value);
+  return n<1000000000000?n*1000:n;
+ }
+
+ const t=Date.parse(String(value));
+ return Number.isFinite(t)?t:null;
+}
+
+function syncDrawClock(current){
+ const drawTime=parseTimeValue(current.drawTime);
+ const serverTime=parseTimeValue(current.serverTime);
+
+ if(drawTime===null)return;
+
+ let remaining=serverTime!==null
+  ?drawTime-serverTime
+  :drawTime-Date.now();
+
+ serverDeadline=Date.now()+Math.max(0,remaining);
+ zeroRefreshTriggered=false;
+
+ updateCountdown();
+}
+
+function updateCountdown(){
+ const el=document.getElementById("countdown");
+ if(!el)return;
+
+ if(serverDeadline===null){
+  el.textContent="距离下期开奖：等待开奖时间";
+  return;
+ }
+
+ const remaining=Math.max(0,serverDeadline-Date.now());
+ const total=Math.floor(remaining/1000);
+
+ const hours=Math.floor(total/3600);
+ const minutes=Math.floor((total%3600)/60);
+ const seconds=total%60;
+
+ const pad=n=>String(n).padStart(2,"0");
+
+ el.textContent="距离下期开奖："+
+  pad(hours)+":"+pad(minutes)+":"+pad(seconds);
+
+ if(remaining===0&&!zeroRefreshTriggered){
+  zeroRefreshTriggered=true;
+  refreshAll(true);
+ }
+}
+
+function scheduleRetry(){
+ if(retryTimer!==null)return;
+
+ retryTimer=setTimeout(()=>{
+  retryTimer=null;
+  refreshAll(true);
+ },5000);
+}
+
+function clearRetry(){
+ if(retryTimer!==null){
+  clearTimeout(retryTimer);
+  retryTimer=null;
+ }
+}
+
+async function refreshAll(fromCountdown=false){
+ if(refreshInFlight){
+  if(fromCountdown||zeroRefreshTriggered){
+   scheduleRetry();
+  }
+  return;
+ }
 
  refreshInFlight=true;
+
  const status=document.getElementById("status");
  status.textContent="正在读取最新开奖和历史数据…";
 
@@ -774,10 +830,14 @@ async function refreshAll(){
   ]);
 
   const current=unwrapLatest(results[0]);
+
   if(!current)throw new Error("最新开奖数据格式无法识别");
 
   const latestCode=validCode(current.preDrawCode);
+
   if(!latestCode)throw new Error("最新开奖号码格式不正确");
+
+  const previousIssue=latest?.issue||draws[0]?.issue||"";
 
   latest={
    issue:String(current.preDrawIssue),
@@ -785,7 +845,11 @@ async function refreshAll(){
    code:latestCode
   };
 
+  const issueChanged=previousIssue!==""&&
+   previousIssue!==latest.issue;
+
   const old=extractHistory(results[1]);
+
   if(!old.length)throw new Error("历史接口没有识别到有效开奖记录");
 
   mergeDraws(old);
@@ -797,18 +861,39 @@ async function refreshAll(){
   makeNextPredictions(String(current.drawIssue||""));
 
   save();
+
   lastSyncTime=new Date();
+
+  if(serverDeadline===null||issueChanged){
+   syncDrawClock(current);
+  }
+
+  if(issueChanged){
+   zeroRefreshTriggered=false;
+   clearRetry();
+  }
+
   renderAll();
 
   status.textContent=hasAndroidBridge()
    ?"同步成功 · Android后台记录已连接 · "+draws.length+"期历史数据"
    :"数据同步成功 · 已读取 "+draws.length+" 期";
 
+  if(zeroRefreshTriggered&&!issueChanged){
+   scheduleRetry();
+  }
+
  }catch(e){
-  status.textContent="读取失败："+e.message+" · 可稍后重试";
+  status.textContent="读取失败："+e.message+" · 自动重试中";
 
   if(hasAndroidBridge())syncAndroidData();
+
   renderAll();
+
+  if(fromCountdown||zeroRefreshTriggered){
+   scheduleRetry();
+  }
+
  }finally{
   refreshInFlight=false;
  }
@@ -1060,6 +1145,15 @@ function renderRecords(){
      <span class="${cls}">${label}</span>
     </div>
     <div class="small">
+const actual=Array.isArray(p.actual)?p.actual.join("-"):"";
+
+  return `
+   <div class="draw">
+    <div class="row">
+     <b>系统 ${esc(p.kind)} · 第${esc(p.target)}期</b>
+     <span class="${cls}">${label}</span>
+    </div>
+    <div class="small">
      推荐位置：${p.kind==="D"
       ?(p.position?"第"+esc(p.position)+"名":"旧版全位置")
       :"按系统规则"}
@@ -1103,6 +1197,7 @@ function clearPredictions(){
  renderAll();
 }
 
+/* 启动程序 */
 draws=load(STORE.history,[]);
 predictions=load(STORE.predictions,[]);
 
@@ -1111,18 +1206,38 @@ draws=draws.map(normalizeDraw).filter(Boolean)
 
 if(hasAndroidBridge())syncAndroidData();
 
-renderAll();
-refreshAll();
+latest=draws.length?draws[0]:null;
 
+renderAll();
+
+/* 倒计时每秒更新 */
+if(countdownTimer)clearInterval(countdownTimer);
+
+countdownTimer=setInterval(()=>{
+ updateCountdown();
+},1000);
+
+/* 每30秒自动刷新 */
+if(normalRefreshTimer)clearInterval(normalRefreshTimer);
+
+normalRefreshTimer=setInterval(()=>{
+ refreshAll(false);
+},30000);
+
+/* 从后台回到页面时立即刷新 */
 document.addEventListener("visibilitychange",()=>{
- if(document.visibilityState==="visible")refreshAll();
+ if(document.visibilityState==="visible"){
+  refreshAll(false);
+ }
 });
 
-window.addEventListener("pageshow",()=>refreshAll());
+window.addEventListener("pageshow",()=>{
+ refreshAll(false);
+});
 
-setInterval(()=>{
- if(document.visibilityState==="visible")refreshAll();
-},60000);
+/* 打开页面立即刷新 */
+refreshAll(false);
+
 </script>
 </body>
 </html>
