@@ -58,7 +58,6 @@ public class MonitorService extends Service {
     };
 
     private ScheduledExecutorService scheduler;
-
     private final Object lock = new Object();
 
     private List<Draw> draws = new ArrayList<>();
@@ -66,7 +65,6 @@ public class MonitorService extends Service {
 
     public static void start(Context context) {
         Intent intent = new Intent(context, MonitorService.class);
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent);
         } else {
@@ -77,9 +75,7 @@ public class MonitorService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
         createNotificationChannel();
-
         loadSavedData();
 
         startForeground(
@@ -88,7 +84,6 @@ public class MonitorService extends Service {
         );
 
         scheduler = Executors.newSingleThreadScheduledExecutor();
-
         scheduler.scheduleWithFixedDelay(
                 this::checkLatestDraw,
                 0,
@@ -97,56 +92,38 @@ public class MonitorService extends Service {
         );
     }
 
-    // ==============================
     // 网络读取
-    // ==============================
 
     private JSONObject fetchJSON(String address) throws Exception {
-
         HttpURLConnection connection = null;
-
         try {
             URL url = new URL(address);
-
             connection = (HttpURLConnection) url.openConnection();
-
             connection.setRequestMethod("GET");
             connection.setConnectTimeout(15000);
             connection.setReadTimeout(20000);
             connection.setUseCaches(false);
-            connection.setRequestProperty(
-                    "Cache-Control",
-                    "no-cache"
-            );
+            connection.setRequestProperty("Cache-Control", "no-cache");
 
             int status = connection.getResponseCode();
-
             if (status != 200) {
                 throw new Exception("服务器返回：" + status);
             }
 
             StringBuilder response = new StringBuilder();
-
             try (
                     InputStream input = connection.getInputStream();
                     BufferedReader reader = new BufferedReader(
-                            new InputStreamReader(
-                                    input,
-                                    StandardCharsets.UTF_8
-                            )
+                            new InputStreamReader(input, StandardCharsets.UTF_8)
                     )
             ) {
                 String line;
-
                 while ((line = reader.readLine()) != null) {
                     response.append(line);
                 }
             }
-
             return new JSONObject(response.toString());
-
         } finally {
-
             if (connection != null) {
                 connection.disconnect();
             }
@@ -154,64 +131,40 @@ public class MonitorService extends Service {
     }
 
     private JSONObject unwrapLatest(JSONObject root) {
-
         JSONObject result = root.optJSONObject("result");
-
         if (result != null) {
             JSONObject data = result.optJSONObject("data");
-
-            if (data != null) {
-                return data;
-            }
+            if (data != null) return data;
         }
 
         JSONObject data = root.optJSONObject("data");
-
-        if (data != null) {
-            return data;
-        }
+        if (data != null) return data;
 
         return root;
     }
 
     private JSONArray extractHistory(JSONObject root) {
-
         JSONArray array = root.optJSONArray("data");
-
-        if (array != null) {
-            return array;
-        }
+        if (array != null) return array;
 
         JSONObject result = root.optJSONObject("result");
-
         if (result != null) {
-
             array = result.optJSONArray("data");
-
-            if (array != null) {
-                return array;
-            }
+            if (array != null) return array;
 
             JSONObject data = result.optJSONObject("data");
-
             if (data != null) {
                 array = data.optJSONArray("list");
-
-                if (array != null) {
-                    return array;
-                }
+                if (array != null) return array;
             }
         }
 
         return root.optJSONArray("list");
     }
 
-    // ==============================
     // 开奖数据处理
-    // ==============================
 
     private static class Draw {
-
         String issue;
         String time;
         int[] code;
@@ -224,34 +177,21 @@ public class MonitorService extends Service {
     }
 
     private int[] validCode(String value) {
-
-        if (value == null || value.isEmpty()) {
-            return null;
-        }
+        if (value == null || value.isEmpty()) return null;
 
         String[] parts = value.split("[,，\\s-]+");
-
-        if (parts.length != 10) {
-            return null;
-        }
+        if (parts.length != 10) return null;
 
         int[] numbers = new int[10];
         boolean[] seen = new boolean[11];
 
         try {
-
             for (int i = 0; i < 10; i++) {
-
                 int n = Integer.parseInt(parts[i]);
-
-                if (n < 1 || n > 10 || seen[n]) {
-                    return null;
-                }
-
+                if (n < 1 || n > 10 || seen[n]) return null;
                 numbers[i] = n;
                 seen[n] = true;
             }
-
         } catch (Exception e) {
             return null;
         }
@@ -260,10 +200,7 @@ public class MonitorService extends Service {
     }
 
     private Draw normalizeDraw(JSONObject object) {
-
-        if (object == null) {
-            return null;
-        }
+        if (object == null) return null;
 
         String issue = object.optString(
                 "preDrawIssue",
@@ -284,16 +221,12 @@ public class MonitorService extends Service {
         );
 
         int[] numbers = validCode(code);
-
-        if (issue.isEmpty() || numbers == null) {
-            return null;
-        }
+        if (issue.isEmpty() || numbers == null) return null;
 
         return new Draw(issue, time, numbers);
     }
 
     private int compareIssue(String a, String b) {
-
         try {
             return new BigInteger(b).compareTo(new BigInteger(a));
         } catch (Exception e) {
@@ -302,35 +235,22 @@ public class MonitorService extends Service {
     }
 
     private void mergeDraws(List<Draw> incoming) {
-
         Map<String, Draw> map = new HashMap<>();
 
-        for (Draw d : draws) {
-            map.put(d.issue, d);
-        }
-
-        for (Draw d : incoming) {
-            map.put(d.issue, d);
-        }
+        for (Draw d : draws) map.put(d.issue, d);
+        for (Draw d : incoming) map.put(d.issue, d);
 
         List<Draw> merged = new ArrayList<>(map.values());
-
-        Collections.sort(merged, (a, b) ->
-                compareIssue(a.issue, b.issue)
-        );
+        Collections.sort(merged, (a, b) -> compareIssue(a.issue, b.issue));
 
         if (merged.size() > 500) {
-            merged = new ArrayList<>(
-                    merged.subList(0, 500)
-            );
+            merged = new ArrayList<>(merged.subList(0, 500));
         }
 
         draws = merged;
     }
 
-    // ==============================
     // 八种预测模型
-    // ==============================
 
     private static final int MODEL_COUNT = 8;
 
@@ -338,181 +258,132 @@ public class MonitorService extends Service {
         return Math.max(min, Math.min(max, value));
     }
 
-    private double rate(List<Integer> positions, int window, int limit) {
+    private boolean isTargetPosition(int position, String kind) {
+        if ("A".equals(kind)) return position >= 0 && position < 3;
+        if ("B".equals(kind)) return position >= 0 && position < 7;
+        if ("C".equals(kind)) return position >= 1 && position < 8;
+        return false;
+    }
 
+    private double rate(List<Integer> positions, int window, String kind) {
         int count = Math.min(window, positions.size());
-
         if (count == 0) return 0.0;
 
         int hits = 0;
-
         for (int i = 0; i < count; i++) {
-            if (positions.get(i) < limit) hits++;
+            if (isTargetPosition(positions.get(i), kind)) hits++;
         }
 
         return hits / (double) count;
     }
 
     private int median(List<Integer> values) {
-
         if (values.isEmpty()) return 1;
 
         List<Integer> sorted = new ArrayList<>(values);
-
         Collections.sort(sorted);
 
         int mid = sorted.size() / 2;
-
         if (sorted.size() % 2 == 1) return sorted.get(mid);
 
         return (sorted.get(mid - 1) + sorted.get(mid)) / 2;
     }
 
     private int zone(int position) {
-
         if (position < 3) return 0;
-
         if (position < 7) return 1;
-
         return 2;
     }
 
     private double[][] scoreNumbers(List<Draw> data, String kind) {
-
-        int limit = kind.equals("A") ? 3 : 7;
-
-        double base = limit / 10.0;
-
+        double base = "A".equals(kind) ? 0.30 : 0.70;
         double[][] scores = new double[11][MODEL_COUNT];
 
         for (int n = 1; n <= 10; n++) {
-
             List<Integer> positions = new ArrayList<>();
 
             for (Draw d : data) {
-
                 int position = 10;
-
                 for (int i = 0; i < 10; i++) {
-
                     if (d.code[i] == n) {
                         position = i;
                         break;
                     }
                 }
-
                 positions.add(position);
             }
 
-            double r5 = rate(positions, 5, limit);
-            double r10 = rate(positions, 10, limit);
-            double r20 = rate(positions, 20, limit);
-            double r30 = rate(positions, 30, limit);
-            double r60 = rate(positions, 60, limit);
-            double r100 = rate(positions, 100, limit);
+            double r5 = rate(positions, 5, kind);
+            double r10 = rate(positions, 10, kind);
+            double r20 = rate(positions, 20, kind);
+            double r30 = rate(positions, 30, kind);
+            double r60 = rate(positions, 60, kind);
+            double r100 = rate(positions, 100, kind);
 
             int gap = positions.size();
-
             for (int i = 0; i < positions.size(); i++) {
-
-                if (positions.get(i) < limit) {
+                if (isTargetPosition(positions.get(i), kind)) {
                     gap = i;
                     break;
                 }
             }
 
-            // 1. 近期冷热频率
-            double frequency =
-                    r10 * 0.50 +
-                    r30 * 0.30 +
-                    r100 * 0.20;
-
-            // 2. 遗漏间隔
+            double frequency = r10 * 0.50 + r30 * 0.30 + r100 * 0.20;
             double expectedGap = 1.0 / Math.max(base, 0.01);
-
             double omission = Math.exp(
                     -Math.abs(gap - expectedGap) / expectedGap
             );
+            double trend = clamp(0.5 + (r10 - r30), 0.0, 1.0);
+            double multi = r5 * 0.40 + r20 * 0.35 + r60 * 0.25;
 
-            // 3. 近期走势
-            double trend = clamp(
-                    0.5 + (r10 - r30),
-                    0.0,
-                    1.0
-            );
-
-            // 4. 多窗口融合
-            double multi =
-                    r5 * 0.40 +
-                    r20 * 0.35 +
-                    r60 * 0.25;
-
-            // 5. 周期相似分析
             List<Integer> hitIndexes = new ArrayList<>();
-
             for (int i = 0; i < positions.size(); i++) {
-
-                if (positions.get(i) < limit) {
+                if (isTargetPosition(positions.get(i), kind)) {
                     hitIndexes.add(i);
                 }
             }
 
             List<Integer> intervals = new ArrayList<>();
-
             for (int i = 1; i < hitIndexes.size(); i++) {
-
-                intervals.add(
-                        hitIndexes.get(i) - hitIndexes.get(i - 1)
-                );
+                intervals.add(hitIndexes.get(i) - hitIndexes.get(i - 1));
             }
 
             int typicalCycle = median(intervals);
-
             double cycle = Math.exp(
                     -Math.abs(gap - typicalCycle)
                     / (double) Math.max(1, typicalCycle)
             );
 
-            // 6. 号码转移分析
-            int previousZone = positions.isEmpty()
-                    ? 2
-                    : zone(positions.get(0));
-
+            int previousZone = positions.isEmpty() ? 2 : zone(positions.get(0));
             int transitionHits = 0;
             int transitionTotal = 0;
 
             for (int i = 1; i < positions.size(); i++) {
-
                 if (zone(positions.get(i)) == previousZone) {
-
                     transitionTotal++;
-
-                    if (positions.get(i - 1) < limit) {
+                    if (isTargetPosition(positions.get(i - 1), kind)) {
                         transitionHits++;
                     }
                 }
             }
 
             double transition =
-                    (transitionHits + base * 8.0)
-                    / (transitionTotal + 8.0);
+                    (transitionHits + base * 8.0) / (transitionTotal + 8.0);
 
-            // 7. 自适应加权
             double adaptive =
-                    frequency * 0.45 +
-                    trend * 0.20 +
-                    transition * 0.25 +
-                    multi * 0.10;
+                    frequency * 0.45
+                    + trend * 0.20
+                    + transition * 0.25
+                    + multi * 0.10;
 
-            // 8. 多模型融合
             double ensemble =
-                    frequency * 0.18 +
-                    omission * 0.04 +
-                    trend * 0.14 +
-                    multi * 0.18 +
-                    cycle * 0.08 +
-                    transition * 0.22 +
-                    adaptive * 0.16;
+                    frequency * 0.18
+                    + omission * 0.04
+                    + trend * 0.14
+                    + multi * 0.18
+                    + cycle * 0.08
+                    + transition * 0.22
+                    + adaptive * 0.16;
 
             scores[n][0] = frequency;
             scores[n][1] = omission;
@@ -527,26 +398,16 @@ public class MonitorService extends Service {
         return scores;
     }
 
-    private int rankFor(
-            List<Draw> data,
-            String kind,
-            int model
-    ) {
-
+    private int rankFor(List<Draw> data, String kind, int model) {
         double[][] scores = scoreNumbers(data, kind);
 
         int bestNumber = 1;
-
         double bestScore = scores[1][model];
 
         for (int n = 2; n <= 10; n++) {
-
             double score = scores[n][model];
-
             if (score > bestScore) {
-
                 bestScore = score;
-
                 bestNumber = n;
             }
         }
@@ -555,97 +416,60 @@ public class MonitorService extends Service {
     }
 
     private static class ModelResult {
-
         int hit;
         int total;
         double rate;
         double adjusted;
     }
 
-    private ModelResult[] testModels(
-            List<Draw> data,
-            String kind
-    ) {
-
-        double base = kind.equals("A") ? 0.30 : 0.70;
-
+    private ModelResult[] testModels(List<Draw> data, String kind) {
+        double base = "A".equals(kind) ? 0.30 : 0.70;
         int minTrain = 30;
-
-        int maxTests = Math.max(
-                0,
-                Math.min(120, data.size() - minTrain)
-        );
+        int maxTests = Math.max(0, Math.min(120, data.size() - minTrain));
 
         ModelResult[] result = new ModelResult[MODEL_COUNT];
-
         for (int m = 0; m < MODEL_COUNT; m++) {
             result[m] = new ModelResult();
         }
 
-        // 滚动回测：只使用被测期之前已经开奖的数据
         for (int i = 0; i < maxTests; i++) {
-
-            List<Draw> train = data.subList(
-                    i + 1,
-                    data.size()
-            );
-
+            List<Draw> train = data.subList(i + 1, data.size());
             if (train.size() < minTrain) continue;
 
             int[] actual = data.get(i).code;
 
             for (int m = 0; m < MODEL_COUNT; m++) {
-
                 int predicted = rankFor(train, kind, m);
-
                 boolean hit = false;
 
-                int limit = kind.equals("A") ? 3 : 7;
-
-                for (int j = 0; j < limit; j++) {
-
-                    if (actual[j] == predicted) {
+                for (int j = 0; j < 10; j++) {
+                    if (isTargetPosition(j, kind) && actual[j] == predicted) {
                         hit = true;
                         break;
                     }
                 }
 
                 result[m].total++;
-
-                if (hit) {
-                    result[m].hit++;
-                }
+                if (hit) result[m].hit++;
             }
         }
 
         for (int m = 0; m < MODEL_COUNT; m++) {
-
             ModelResult x = result[m];
-
-            x.rate = x.total == 0
-                    ? 0.0
-                    : x.hit / (double) x.total;
-
+            x.rate = x.total == 0 ? 0.0 : x.hit / (double) x.total;
             x.adjusted = x.total == 0
                     ? base
-                    : (x.rate * x.total + base * 30.0)
-                    / (x.total + 30.0);
+                    : (x.rate * x.total + base * 30.0) / (x.total + 30.0);
         }
 
         return result;
     }
 
-    private int chooseModel(
-            List<Draw> data,
-            String kind
-    ) {
-
+    private int chooseModel(List<Draw> data, String kind) {
         ModelResult[] tests = testModels(data, kind);
-
         int best = 0;
 
         for (int i = 1; i < MODEL_COUNT; i++) {
-
             if (tests[i].adjusted > tests[best].adjusted) {
                 best = i;
             }
@@ -654,19 +478,11 @@ public class MonitorService extends Service {
         return best;
     }
 
-    // ==============================
     // 预测记录
-    // ==============================
 
-    private boolean predictionExists(
-            String target,
-            String kind
-    ) {
-
+    private boolean predictionExists(String target, String kind) {
         for (int i = 0; i < predictions.length(); i++) {
-
             JSONObject p = predictions.optJSONObject(i);
-
             if (p == null) continue;
 
             if (target.equals(p.optString("target"))
@@ -678,17 +494,9 @@ public class MonitorService extends Service {
         return false;
     }
 
-    private void addPrediction(
-            String kind,
-            String target,
-            int number,
-            int model
-    ) {
-
+    private void addPrediction(String kind, String target, int number, int model) {
         try {
-
             JSONObject p = new JSONObject();
-
             p.put("kind", kind);
             p.put("target", target);
             p.put("base", draws.get(0).issue);
@@ -696,169 +504,130 @@ public class MonitorService extends Service {
             p.put("model", MODEL_KEYS[model]);
             p.put("result", "pending");
             p.put("created", System.currentTimeMillis());
-
-            JSONArray updated = new JSONArray();
-
-            updated.put(p);
-
-            for (int i = 0; i < predictions.length(); i++) {
-                updated.put(predictions.get(i));
-            }
-
-            predictions = updated;
-
-            if (predictions.length() > 1000) {
-
-                JSONArray trimmed = new JSONArray();
-
-                for (int i = 0; i < 1000; i++) {
-                    trimmed.put(predictions.get(i));
-                }
-
-                predictions = trimmed;
-            }
-
+            prependPrediction(p);
         } catch (Exception ignored) {
         }
     }
 
-    private void makeNextPredictions(String targetIssue) {
+    private void addNineNumberPrediction(String target) {
+        try {
+            int excluded = 1 + (int) (Math.random() * 10);
+            JSONArray numbers = new JSONArray();
 
-        if (targetIssue == null || targetIssue.isEmpty()) {
-            return;
-        }
+            for (int n = 1; n <= 10; n++) {
+                if (n != excluded) numbers.put(n);
+            }
 
-        if (draws.size() < 30) {
-
-            updateNotification(
-                    "历史数据不足30期，暂不能生成预测"
-            );
-
-            return;
-        }
-
-        boolean needA = !predictionExists(targetIssue, "A");
-
-        boolean needB = !predictionExists(targetIssue, "B");
-
-        if (!needA && !needB) {
-            return;
-        }
-
-        if (needA) {
-
-            int modelA = chooseModel(draws, "A");
-
-            int numberA = rankFor(
-                    draws,
-                    "A",
-                    modelA
-            );
-
-            addPrediction(
-                    "A",
-                    targetIssue,
-                    numberA,
-                    modelA
-            );
-        }
-
-        if (needB) {
-
-            int modelB = chooseModel(draws, "B");
-
-            int numberB = rankFor(
-                    draws,
-                    "B",
-                    modelB
-            );
-
-            addPrediction(
-                    "B",
-                    targetIssue,
-                    numberB,
-                    modelB
-            );
+            JSONObject p = new JSONObject();
+            p.put("kind", "D");
+            p.put("target", target);
+            p.put("base", draws.get(0).issue);
+            p.put("numbers", numbers);
+            p.put("excluded", excluded);
+            p.put("model", "nine_random_exclusion");
+            p.put("result", "pending");
+            p.put("created", System.currentTimeMillis());
+            prependPrediction(p);
+        } catch (Exception ignored) {
         }
     }
 
-    // ==============================
-    // 自动结算
-    // ==============================
+    private void prependPrediction(JSONObject p) {
+        JSONArray updated = new JSONArray();
+        updated.put(p);
 
-    private boolean containsTop(
-            int[] code,
-            int number,
-            int limit
-    ) {
+        for (int i = 0; i < predictions.length(); i++) {
+            updated.put(predictions.opt(i));
+        }
 
-        for (int i = 0; i < limit; i++) {
+        predictions = updated;
 
-            if (code[i] == number) {
-                return true;
+        if (predictions.length() > 1000) {
+            JSONArray trimmed = new JSONArray();
+            for (int i = 0; i < 1000; i++) {
+                trimmed.put(predictions.opt(i));
+            }
+            predictions = trimmed;
+        }
+    }
+
+    private void makeNextPredictions(String targetIssue) {
+        if (targetIssue == null || targetIssue.isEmpty()) return;
+
+        if (draws.size() < 30) {
+            updateNotification("历史数据不足30期，暂不能生成预测");
+            return;
+        }
+
+        for (String kind : new String[]{"A", "B", "C"}) {
+            if (!predictionExists(targetIssue, kind)) {
+                int model = chooseModel(draws, kind);
+                int number = rankFor(draws, kind, model);
+                addPrediction(kind, targetIssue, number, model);
             }
         }
 
+        if (!predictionExists(targetIssue, "D")) {
+            addNineNumberPrediction(targetIssue);
+        }
+    }
+
+    // 自动结算
+
+    private boolean containsTargetPosition(int[] code, int number, String kind) {
+        for (int i = 0; i < code.length; i++) {
+            if (isTargetPosition(i, kind) && code[i] == number) return true;
+        }
         return false;
     }
 
     private boolean settlePredictions() {
-
         Map<String, Draw> byIssue = new HashMap<>();
-
-        for (Draw d : draws) {
-            byIssue.put(d.issue, d);
-        }
+        for (Draw d : draws) byIssue.put(d.issue, d);
 
         boolean changed = false;
 
         for (int i = 0; i < predictions.length(); i++) {
-
             JSONObject p = predictions.optJSONObject(i);
+            if (p == null || !"pending".equals(p.optString("result"))) continue;
 
-            if (p == null) continue;
-
-            if (!"pending".equals(p.optString("result"))) {
-                continue;
-            }
-
-            String target = p.optString("target");
-
-            Draw d = byIssue.get(target);
-
+            Draw d = byIssue.get(p.optString("target"));
             if (d == null) continue;
 
             String kind = p.optString("kind");
+            boolean hit = false;
 
-            int limit = kind.equals("A") ? 3 : 7;
+            if ("D".equals(kind)) {
+                JSONArray numbers = p.optJSONArray("numbers");
 
-            int number = p.optInt("number", -1);
-
-            boolean hit = containsTop(
-                    d.code,
-                    number,
-                    limit
-            );
+                if (numbers != null) {
+                    for (int j = 0; j < numbers.length() && !hit; j++) {
+                        int n = numbers.optInt(j, -1);
+                        for (int actual : d.code) {
+                            if (actual == n) {
+                                hit = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } else {
+                hit = containsTargetPosition(
+                        d.code,
+                        p.optInt("number", -1),
+                        kind
+                );
+            }
 
             try {
-
-                p.put(
-                        "result",
-                        hit ? "hit" : "miss"
-                );
+                p.put("result", hit ? "hit" : "miss");
 
                 JSONArray actual = new JSONArray();
-
-                for (int n : d.code) {
-                    actual.put(n);
-                }
+                for (int n : d.code) actual.put(n);
 
                 p.put("actual", actual);
-
                 p.put("settledAt", d.time);
-
                 changed = true;
-
             } catch (Exception ignored) {
             }
         }
@@ -866,12 +635,9 @@ public class MonitorService extends Service {
         return changed;
     }
 
-    // ==============================
     // 本机持久化
-    // ==============================
 
     private void loadSavedData() {
-
         SharedPreferences prefs =
                 getSharedPreferences(PREFS, MODE_PRIVATE);
 
@@ -882,173 +648,104 @@ public class MonitorService extends Service {
                 prefs.getString(KEY_HISTORY, "[]");
 
         try {
-
             predictions = new JSONArray(savedPredictions);
-
         } catch (Exception e) {
-
             predictions = new JSONArray();
         }
 
         try {
-
             JSONArray array = new JSONArray(savedHistory);
-
             List<Draw> loaded = new ArrayList<>();
 
             for (int i = 0; i < array.length(); i++) {
-
                 JSONObject object = array.optJSONObject(i);
-
                 Draw d = normalizeDraw(object);
-
-                if (d != null) {
-                    loaded.add(d);
-                }
+                if (d != null) loaded.add(d);
             }
 
             draws = loaded;
-
         } catch (Exception e) {
-
             draws = new ArrayList<>();
         }
     }
 
     private void saveAll() {
-
         SharedPreferences prefs =
                 getSharedPreferences(PREFS, MODE_PRIVATE);
 
         JSONArray history = new JSONArray();
 
         for (Draw d : draws) {
-
             try {
-
                 JSONObject object = new JSONObject();
-
                 object.put("preDrawIssue", d.issue);
                 object.put("preDrawTime", d.time);
 
                 StringBuilder code = new StringBuilder();
 
                 for (int i = 0; i < d.code.length; i++) {
-
-                    if (i > 0) {
-                        code.append(",");
-                    }
-
-                    if (d.code[i] < 10) {
-                        code.append("0");
-                    }
-
+                    if (i > 0) code.append(",");
+                    if (d.code[i] < 10) code.append("0");
                     code.append(d.code[i]);
                 }
 
                 object.put("preDrawCode", code.toString());
-
                 history.put(object);
-
             } catch (Exception ignored) {
             }
         }
 
         prefs.edit()
-                .putString(
-                        KEY_PREDICTIONS,
-                        predictions.toString()
-                )
-                .putString(
-                        KEY_HISTORY,
-                        history.toString()
-                )
+                .putString(KEY_PREDICTIONS, predictions.toString())
+                .putString(KEY_HISTORY, history.toString())
                 .apply();
     }
 
-    // ==============================
     // 每分钟执行
-    // ==============================
 
     private void checkLatestDraw() {
-
         synchronized (lock) {
-
             try {
-
                 updateNotification("正在读取最新开奖和历史数据…");
 
                 JSONObject latestRoot = fetchJSON(API_URL);
-
                 JSONObject latestData = unwrapLatest(latestRoot);
 
-                String issue = latestData.optString(
-                        "preDrawIssue",
-                        ""
-                );
-
-                String code = latestData.optString(
-                        "preDrawCode",
-                        ""
-                );
-
-                String targetIssue = latestData.optString(
-                        "drawIssue",
-                        ""
-                );
-
-                String drawTime = latestData.optString(
-                        "preDrawTime",
-                        ""
-                );
+                String issue = latestData.optString("preDrawIssue", "");
+                String code = latestData.optString("preDrawCode", "");
+                String targetIssue = latestData.optString("drawIssue", "");
+                String drawTime = latestData.optString("preDrawTime", "");
 
                 int[] latestCode = validCode(code);
 
-                if (issue.isEmpty()
-                        || targetIssue.isEmpty()
-                        || latestCode == null) {
-
+                if (issue.isEmpty() || targetIssue.isEmpty() || latestCode == null) {
                     throw new Exception("最新开奖数据格式不正确");
                 }
 
                 JSONObject historyRoot = fetchJSON(HISTORY_URL);
-
                 JSONArray historyArray = extractHistory(historyRoot);
 
                 if (historyArray == null || historyArray.length() == 0) {
-
                     throw new Exception("历史开奖数据为空");
                 }
 
                 List<Draw> incoming = new ArrayList<>();
 
                 for (int i = 0; i < historyArray.length(); i++) {
-
-                    JSONObject object =
-                            historyArray.optJSONObject(i);
-
+                    JSONObject object = historyArray.optJSONObject(i);
                     Draw d = normalizeDraw(object);
-
-                    if (d != null) {
-                        incoming.add(d);
-                    }
+                    if (d != null) incoming.add(d);
                 }
 
                 if (incoming.isEmpty()) {
-
                     throw new Exception("没有识别到有效历史记录");
                 }
 
-                incoming.add(
-                        new Draw(issue, drawTime, latestCode)
-                );
-
+                incoming.add(new Draw(issue, drawTime, latestCode));
                 mergeDraws(incoming);
 
-                // 先结算已开奖的预测
                 boolean settled = settlePredictions();
 
-                // 再生成下一期 A、B 预测
                 makeNextPredictions(targetIssue);
 
                 saveAll();
@@ -1066,29 +763,20 @@ public class MonitorService extends Service {
                         + " · 下一期 " + targetIssue
                         + " · 历史 " + draws.size() + "期";
 
-                if (settled) {
-                    message += " · 已完成预测结算";
-                }
+                if (settled) message += " · 已完成预测结算";
 
                 updateNotification(message);
 
             } catch (Exception e) {
-
-                updateNotification(
-                        "后台读取失败，60秒后重试"
-                );
+                updateNotification("后台读取失败，60秒后重试");
             }
         }
     }
 
-    // ==============================
     // 通知
-    // ==============================
 
     private void createNotificationChannel() {
-
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-
             NotificationChannel channel =
                     new NotificationChannel(
                             CHANNEL_ID,
@@ -1097,7 +785,7 @@ public class MonitorService extends Service {
                     );
 
             channel.setDescription(
-                    "每分钟读取开奖数据并生成A、B预测"
+                    "每分钟读取开奖数据并生成A、B、C、D预测"
             );
 
             NotificationManager manager =
@@ -1110,7 +798,6 @@ public class MonitorService extends Service {
     }
 
     private Notification buildNotification(String message) {
-
         Notification.Builder builder;
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -1128,14 +815,10 @@ public class MonitorService extends Service {
     }
 
     private void updateNotification(String message) {
-
         NotificationManager manager =
-                (NotificationManager) getSystemService(
-                        NOTIFICATION_SERVICE
-                );
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
 
         if (manager != null) {
-
             manager.notify(
                     NOTIFICATION_ID,
                     buildNotification(message)
@@ -1144,22 +827,13 @@ public class MonitorService extends Service {
     }
 
     @Override
-    public int onStartCommand(
-            Intent intent,
-            int flags,
-            int startId
-    ) {
-
+    public int onStartCommand(Intent intent, int flags, int startId) {
         return START_STICKY;
     }
 
     @Override
     public void onDestroy() {
-
-        if (scheduler != null) {
-            scheduler.shutdownNow();
-        }
-
+        if (scheduler != null) scheduler.shutdownNow();
         super.onDestroy();
     }
 
