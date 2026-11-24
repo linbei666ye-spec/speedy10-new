@@ -26,7 +26,6 @@ main{padding:13px;max-width:700px;margin:auto}
 .card{background:var(--panel);border:1px solid #263750;border-radius:15px;padding:14px;margin-bottom:13px}
 .card h2{font-size:15px;margin:0 0 12px}
 .row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.muted{color:var(--muted);font-size:12px}
 .small{font-size:11px;color:var(--muted)}
 button.action{border:0;border-radius:10px;background:#2875ce;color:white;padding:10px 15px;font-size:13px}
 button.secondary{background:#293d59}
@@ -42,16 +41,13 @@ button.secondary{background:#293d59}
 .balls{display:flex;justify-content:space-between;gap:3px;margin-top:10px}
 .ball{width:25px;height:25px;border-radius:2px;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;font-size:11px;flex-shrink:0;line-height:1}
 .ball-1{background:#E5D600}.ball-2{background:#168CC9}.ball-3{background:#4B4B4B}.ball-4{background:#F58200}.ball-5{background:#21C8C9}.ball-6{background:#5536E8}.ball-7{background:#BDBDBD}.ball-8{background:#F12B17}.ball-9{background:#790B0B}.ball-10{background:#08B51A}
-.pred-number{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;padding:0;border-radius:2px;color:#fff;font-size:14px;font-weight:bold;margin:6px 0}
+.pred-number{display:inline-flex;align-items:center;justify-content:center;width:25px;height:25px;border-radius:2px;color:#fff;font-size:14px;font-weight:bold;margin:6px 0}
 .pred-nine{display:flex;flex-wrap:wrap;gap:4px;margin:8px 0}
 .pred-nine .ball{width:25px;height:25px;font-size:11px}
 .draw{padding:12px 0;border-bottom:1px solid #293950}
 .draw:last-child{border:0}
 .drawhead{display:flex;justify-content:space-between;gap:8px;font-size:12px}
 .tag{font-size:11px;border-radius:6px;padding:3px 7px;background:#293c56;color:#c6d5e8}
-table{width:100%;border-collapse:collapse;font-size:12px}
-td,th{text-align:center;padding:10px 4px;border-bottom:1px solid #293950}
-th{color:var(--muted);font-weight:normal}
 .progress{height:7px;background:#293950;border-radius:10px;overflow:hidden;margin-top:6px}
 .progress i{display:block;height:100%;background:var(--blue)}
 .empty{color:var(--muted);font-size:13px;text-align:center;padding:22px}
@@ -59,18 +55,12 @@ th{color:var(--muted);font-weight:normal}
 </style>
 </head>
 <body>
-
 <header>
  <div class="row">
-  <div>
-   <h1>SPEEDY 10</h1>
-   <div class="sub">极速赛车 · 四套独立分析系统</div>
-  </div>
+  <div><h1>SPEEDY 10</h1><div class="sub">极速赛车 · 四套独立分析系统</div></div>
   <button class="action" onclick="refreshAll()">刷新数据</button>
  </div>
-
  <div class="status" id="status">等待连接数据</div>
-
  <div class="countdown-box">
   <div class="countdown-label">距离下一期开奖</div>
   <div id="countdown">--:--:--</div>
@@ -81,148 +71,41 @@ th{color:var(--muted);font-weight:normal}
 <main>
 <section id="home" class="page active">
  <div class="card">
-  <div class="row">
-   <h2>智能预测推荐</h2>
-   <span class="tag" id="targetIssue">等待开奖数据</span>
-  </div>
+  <div class="row"><h2>智能预测推荐</h2><span class="tag" id="targetIssue">等待开奖数据</span></div>
   <div class="predgrid">
-   <div class="pred">
-    <div class="name">系统 A · 前三名任意位置</div>
-    <div class="num" id="predA">--</div>
-    <div class="small" id="algoA">等待分析</div>
-   </div>
-   <div class="pred">
-    <div class="name">系统 B · 前七名任意位置</div>
-    <div class="num" id="predB">--</div>
-    <div class="small" id="algoB">等待分析</div>
-   </div>
-   <div class="pred">
-    <div class="name">系统 C · 第2至第8名</div>
-    <div class="num" id="predC">--</div>
-    <div class="small" id="algoC">等待分析</div>
-   </div>
-   <div class="pred">
-    <div class="name">系统 D · 指定名次九码</div>
-    <div class="pred-nine" id="predD">--</div>
-    <div class="small" id="algoD">等待分析</div>
-   </div>
+   <div class="pred"><div class="name">系统 A · 前三名任意位置</div><div class="num" id="predA">--</div><div class="small" id="algoA">等待分析</div></div>
+   <div class="pred"><div class="name">系统 B · 前七名任意位置</div><div class="num" id="predB">--</div><div class="small" id="algoB">等待分析</div></div>
+   <div class="pred"><div class="name">系统 C · 第2至第8名</div><div class="num" id="predC">--</div><div class="small" id="algoC">等待分析</div></div>
+   <div class="pred"><div class="name">系统 D · 指定名次九码</div><div class="pred-nine" id="predD">--</div><div class="small" id="algoD">等待分析</div></div>
   </div>
-  <div class="notice" style="margin-top:12px">
-   预测仅供历史数据分析参考，开奖结果具有随机性，不保证命中。
-  </div>
+  <div class="notice" style="margin-top:12px">预测仅供历史数据分析参考，开奖结果具有随机性，不保证命中。</div>
  </div>
 
- <div class="card">
-  <h2>系统 A · 前三名独立统计</h2>
-  <div class="stats">
-   <div class="stat"><span>累计命中</span><b class="green" id="aHit">0</b></div>
-   <div class="stat"><span>累计未中</span><b class="red" id="aMiss">0</b></div>
-   <div class="stat"><span>命中率</span><b id="aRate">--%</b></div>
-  </div>
- </div>
-
- <div class="card">
-  <h2>系统 B · 前七名独立统计</h2>
-  <div class="stats">
-   <div class="stat"><span>累计命中</span><b class="green" id="bHit">0</b></div>
-   <div class="stat"><span>累计未中</span><b class="red" id="bMiss">0</b></div>
-   <div class="stat"><span>命中率</span><b id="bRate">--%</b></div>
-  </div>
- </div>
-
- <div class="card">
-  <h2>系统 C · 第2至第8名独立统计</h2>
-  <div class="stats">
-   <div class="stat"><span>累计命中</span><b class="green" id="cHit">0</b></div>
-   <div class="stat"><span>累计未中</span><b class="red" id="cMiss">0</b></div>
-   <div class="stat"><span>命中率</span><b id="cRate">--%</b></div>
-  </div>
- </div>
-
- <div class="card">
-  <h2>系统 D · 指定名次九码独立统计</h2>
-  <div class="stats">
-   <div class="stat"><span>累计命中</span><b class="green" id="dHit">0</b></div>
-   <div class="stat"><span>累计未中</span><b class="red" id="dMiss">0</b></div>
-   <div class="stat"><span>命中率</span><b id="dRate">--%</b></div>
-  </div>
-  <div class="notice">只检查本期推荐的指定名次，实际号码在九码内显示「中」，否则显示「挂」。</div>
- </div>
-
- <div class="card">
-  <div class="row">
-   <h2>最新开奖结果</h2>
-   <span class="tag" id="latestIssue">--</span>
-  </div>
-  <div class="small" id="latestTime">等待数据</div>
-  <div class="balls" id="latestBalls"></div>
- </div>
-
- <div class="card">
-  <div class="row">
-   <h2>数据概况</h2>
-   <span class="tag" id="dataCount">0期</span>
-  </div>
-  <div class="small" id="dataInfo">尚未读取历史数据</div>
- </div>
+ <div class="card"><h2>系统 A · 前三名独立统计</h2><div class="stats"><div class="stat"><span>累计命中</span><b class="green" id="aHit">0</b></div><div class="stat"><span>累计未中</span><b class="red" id="aMiss">0</b></div><div class="stat"><span>命中率</span><b id="aRate">--%</b></div></div></div>
+ <div class="card"><h2>系统 B · 前七名独立统计</h2><div class="stats"><div class="stat"><span>累计命中</span><b class="green" id="bHit">0</b></div><div class="stat"><span>累计未中</span><b class="red" id="bMiss">0</b></div><div class="stat"><span>命中率</span><b id="bRate">--%</b></div></div></div>
+ <div class="card"><h2>系统 C · 第2至第8名独立统计</h2><div class="stats"><div class="stat"><span>累计命中</span><b class="green" id="cHit">0</b></div><div class="stat"><span>累计未中</span><b class="red" id="cMiss">0</b></div><div class="stat"><span>命中率</span><b id="cRate">--%</b></div></div></div>
+ <div class="card"><h2>系统 D · 指定名次九码独立统计</h2><div class="stats"><div class="stat"><span>累计命中</span><b class="green" id="dHit">0</b></div><div class="stat"><span>累计未中</span><b class="red" id="dMiss">0</b></div><div class="stat"><span>命中率</span><b id="dRate">--%</b></div></div><div class="notice">只检查本期推荐的指定名次，实际号码在九码内显示「中」，否则显示「挂」。</div></div>
+ <div class="card"><div class="row"><h2>最新开奖结果</h2><span class="tag" id="latestIssue">--</span></div><div class="small" id="latestTime">等待数据</div><div class="balls" id="latestBalls"></div></div>
+ <div class="card"><div class="row"><h2>数据概况</h2><span class="tag" id="dataCount">0期</span></div><div class="small" id="dataInfo">尚未读取历史数据</div></div>
 </section>
 
-<section id="history" class="page">
- <div class="card">
-  <div class="row">
-   <h2>最近15期开奖记录</h2>
-   <button class="action secondary" onclick="refreshAll()">更新</button>
-  </div>
-  <div id="historyList" class="empty">等待读取开奖记录</div>
- </div>
-</section>
+<section id="history" class="page"><div class="card"><div class="row"><h2>最近15期开奖记录</h2><button class="action secondary" onclick="refreshAll()">更新</button></div><div id="historyList" class="empty">等待读取开奖记录</div></div></section>
 
 <section id="analysis" class="page">
- <div class="card">
-  <h2>号码历史位置频率分析</h2>
-  <div class="notice">统计每个号码进入前三、前七及第2至第8名的历史比例。</div>
-  <div id="numberAnalysis"></div>
- </div>
- <div class="card">
-  <h2>遗漏分析</h2>
-  <div id="omissionAnalysis"></div>
- </div>
+ <div class="card"><h2>号码历史位置频率分析</h2><div class="notice">统计每个号码进入前三、前七及第2至第8名的历史比例。</div><div id="numberAnalysis"></div></div>
+ <div class="card"><h2>遗漏分析</h2><div id="omissionAnalysis"></div></div>
 </section>
 
 <section id="arena" class="page">
- <div class="card">
-  <h2>八种算法擂台 · 系统 A</h2>
-  <div class="notice">滚动回测每一期只使用该期之前的历史数据。</div>
-  <div id="arenaA"></div>
- </div>
- <div class="card">
-  <h2>八种算法擂台 · 系统 B</h2>
-  <div id="arenaB"></div>
- </div>
- <div class="card">
-  <h2>八种算法擂台 · 系统 C（第2至第8名）</h2>
-  <div id="arenaC"></div>
- </div>
- <div class="card">
-  <h2>系统 D · 指定名次九码擂台</h2>
-  <div class="notice">每一期只使用该期之前最多100期数据，重新选择历史覆盖率最高的名次。</div>
-  <div id="arenaD"></div>
- </div>
- <div class="card">
-  <h2>理论随机基线</h2>
-  <div class="notice">单个号码进入前三名的理论概率约30%，进入前七名约70%。九码在指定名次的理论覆盖率为90%。</div>
- </div>
+ <div class="card"><h2>八种算法擂台 · 系统 A</h2><div class="notice">滚动回测每一期只使用该期之前的历史数据。</div><div id="arenaA"></div></div>
+ <div class="card"><h2>八种算法擂台 · 系统 B</h2><div id="arenaB"></div></div>
+ <div class="card"><h2>八种算法擂台 · 系统 C（第2至第8名）</h2><div id="arenaC"></div></div>
+ <div class="card"><h2>系统 D · 指定名次九码擂台</h2><div class="notice">每一期只使用该期之前最多100期数据，重新选择历史覆盖率最高的名次。</div><div id="arenaD"></div></div>
+ <div class="card"><h2>理论随机基线</h2><div class="notice">单个号码进入前三名的理论概率约30%，进入前七名约70%。九码在指定名次的理论覆盖率为90%。</div></div>
 </section>
 
 <section id="records" class="page">
- <div class="card">
-  <div class="row">
-   <h2>预测历史与自动结算</h2>
-   <button class="action secondary" onclick="clearPredictions()">清空预测记录</button>
-  </div>
-  <div class="notice">网页清空按钮只清除网页本地记录，不会删除 Android 后台记录。</div>
-  <div id="recordList" class="empty">暂无预测记录</div>
- </div>
+ <div class="card"><div class="row"><h2>预测历史与自动结算</h2><button class="action secondary" onclick="clearPredictions()">清空预测记录</button></div><div class="notice">网页清空按钮只清除网页本地记录，不会删除 Android 后台记录。</div><div id="recordList" class="empty">暂无预测记录</div></div>
 </section>
 </main>
 
@@ -237,96 +120,61 @@ th{color:var(--muted);font-weight:normal}
 <script>
 const API="https://speedy10-data.lin-bei666ye.workers.dev/";
 const HISTORY_API=API+"?action=history&days=100";
-
-const STORE={
- history:"speedy10_pro_history_v1",
- predictions:"speedy10_pro_predictions_v1"
-};
-
-const NAMES=[
- "近期冷热频率","遗漏与间隔","近期走势","多窗口融合",
- "周期相似分析","号码转移分析","自适应加权","多模型动态融合"
-];
-
-const MODEL_KEYS=[
- "frequency","omission","trend","multi",
- "cycle","transition","adaptive","ensemble"
-];
+const STORE={history:"speedy10_pro_history_v1",predictions:"speedy10_pro_predictions_v1"};
+const NAMES=["近期冷热频率","遗漏与间隔","近期走势","多窗口融合","周期相似分析","号码转移分析","自适应加权","多模型动态融合"];
+const MODEL_KEYS=["frequency","omission","trend","multi","cycle","transition","adaptive","ensemble"];
 
 let draws=[];
 let predictions=[];
 let latest=null;
 let refreshInFlight=false;
 let lastSyncTime=null;
-
 let serverDeadline=0;
 let serverTimeAtSync=0;
 let localTimeAtSync=0;
 let targetDrawIssue="";
 
 function hasAndroidBridge(){
- return typeof window.Android!=="undefined"
-  && typeof window.Android.getPredictions==="function";
+ return typeof window.Android!=="undefined"&&typeof window.Android.getPredictions==="function";
 }
 
 function readAndroidPredictions(){
  if(!hasAndroidBridge())return null;
  try{
   const data=JSON.parse(window.Android.getPredictions()||"[]");
-  if(!Array.isArray(data))return null;
-  return data.filter(p=>p&&p.target&&p.kind);
- }catch(e){
-  console.log("读取 Android 预测记录失败",e);
-  return null;
- }
+  return Array.isArray(data)?data.filter(p=>p&&p.target&&p.kind):null;
+ }catch(e){console.log("读取 Android 预测记录失败",e);return null;}
 }
 
 function readAndroidHistory(){
  if(!hasAndroidBridge()||typeof window.Android.getHistory!=="function")return null;
  try{
   const data=JSON.parse(window.Android.getHistory()||"[]");
-  if(!Array.isArray(data))return null;
-  return data.map(normalizeDraw).filter(Boolean);
- }catch(e){
-  console.log("读取 Android 历史记录失败",e);
-  return null;
- }
+  return Array.isArray(data)?data.map(normalizeDraw).filter(Boolean):null;
+ }catch(e){console.log("读取 Android 历史记录失败",e);return null;}
 }
 
 function syncAndroidData(){
  if(!hasAndroidBridge())return false;
-
  const nativePredictions=readAndroidPredictions();
  if(nativePredictions===null)return false;
-
  const nativeMap=new Map();
- nativePredictions.forEach(p=>{
-  nativeMap.set(String(p.target)+"_"+String(p.kind),p);
- });
-
+ nativePredictions.forEach(p=>nativeMap.set(String(p.target)+"_"+String(p.kind),p));
  const localMap=new Map();
  predictions.forEach(p=>{
   const key=String(p.target)+"_"+String(p.kind);
   if(!nativeMap.has(key))localMap.set(key,p);
  });
-
  predictions=[...nativeMap.values(),...localMap.values()];
- predictions.sort((a,b)=>{
-  const ta=Number(a.created)||Date.parse(a.created)||0;
-  const tb=Number(b.created)||Date.parse(b.created)||0;
-  return tb-ta;
- });
+ predictions.sort((a,b)=>(Number(b.created)||Date.parse(b.created)||0)-(Number(a.created)||Date.parse(a.created)||0));
  predictions=predictions.slice(0,1000);
-
  const nativeHistory=readAndroidHistory();
  if(nativeHistory&&nativeHistory.length)mergeDraws(nativeHistory);
-
  return true;
 }
 
 function load(key,fallback){
- try{return JSON.parse(localStorage.getItem(key))??fallback;}
- catch(e){return fallback;}
+ try{return JSON.parse(localStorage.getItem(key))??fallback;}catch(e){return fallback;}
 }
 
 function save(){
@@ -337,9 +185,7 @@ function save(){
 }
 
 function esc(s){
- return String(s??"").replace(/[&<>"']/g,c=>({
-  "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
- }[c]));
+ return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 }
 
 function ball(n){
@@ -349,13 +195,8 @@ function ball(n){
 }
 
 function validCode(code){
- let a=Array.isArray(code)
-  ?code.map(Number)
-  :String(code||"").split(/[,，\s-]+/).filter(Boolean).map(Number);
-
- if(a.length!==10)return null;
- if(a.some(n=>!Number.isInteger(n)||n<1||n>10))return null;
- if(new Set(a).size!==10)return null;
+ let a=Array.isArray(code)?code.map(Number):String(code||"").split(/[,，\s-]+/).filter(Boolean).map(Number);
+ if(a.length!==10||a.some(n=>!Number.isInteger(n)||n<1||n>10)||new Set(a).size!==10)return null;
  return a;
 }
 
@@ -364,15 +205,12 @@ function normalizeDraw(x){
  const code=validCode(x.preDrawCode??x.drawCode??x.code);
  const issue=String(x.preDrawIssue??x.issue??"");
  if(!code||!issue)return null;
- return {
-  issue,
-  time:String(x.preDrawTime??x.drawTime??""),
-  code
- };
+ return {issue,time:String(x.preDrawTime??x.drawTime??x.time??""),code};
 }
 
+/* 修复后的最新数据读取：兼容 result.data.data */
 function unwrapLatest(j){
- const candidates=[j,j?.result,j?.result?.data,j?.data];
+ const candidates=[j,j?.result,j?.result?.data,j?.result?.data?.data,j?.data,j?.data?.data];
  for(const x of candidates){
   if(x?.preDrawIssue&&x?.preDrawCode)return x;
  }
@@ -380,12 +218,18 @@ function unwrapLatest(j){
 }
 
 function extractHistory(j){
- let arr=[];
- if(Array.isArray(j?.data))arr=j.data;
- else if(Array.isArray(j?.result?.data))arr=j.result.data;
- else if(Array.isArray(j?.result?.data?.list))arr=j.result.data.list;
- else if(Array.isArray(j?.list))arr=j.list;
- return arr.map(normalizeDraw).filter(Boolean);
+ const candidates=[
+  j?.data,
+  j?.result?.data,
+  j?.result?.data?.data,
+  j?.result?.data?.list,
+  j?.result?.data?.data?.list,
+  j?.list
+ ];
+ for(const x of candidates){
+  if(Array.isArray(x))return x.map(normalizeDraw).filter(Boolean);
+ }
+ return [];
 }
 
 function issueSort(a,b){
@@ -396,7 +240,7 @@ function issueSort(a,b){
 
 function mergeDraws(list){
  const map=new Map();
- [...draws,...list].forEach(d=>map.set(d.issue,d));
+ [...draws,...list].forEach(d=>map.set(String(d.issue),d));
  draws=[...map.values()].sort(issueSort).slice(0,500);
 }
 
@@ -407,44 +251,30 @@ async function fetchJSON(url){
 }
 
 /* ===== 实时倒计时 ===== */
-
 function parseServerDate(value){
  if(value===undefined||value===null||value==="")return NaN;
-
- if(typeof value==="number"){
-  return value<100000000000?value*1000:value;
- }
-
+ if(typeof value==="number")return value<100000000000?value*1000:value;
  let s=String(value).trim();
-
  if(/^\d{10,13}$/.test(s)){
   const n=Number(s);
   return n<100000000000?n*1000:n;
  }
-
- // 兼容常见的 yyyy-MM-dd HH:mm:ss 格式
- if(/^\d{4}-\d{2}-\d{2}\s/.test(s)){
-  s=s.replace(" ","T");
- }
-
+ if(/^\d{4}-\d{2}-\d{2}\s/.test(s))s=s.replace(" ","T");
  return Date.parse(s);
 }
 
 function syncDrawClock(current){
  const server=parseServerDate(current.serverTime);
  const draw=parseServerDate(current.drawTime);
-
  if(!Number.isFinite(server)||!Number.isFinite(draw)){
   serverDeadline=0;
   updateCountdown();
   return false;
  }
-
  serverTimeAtSync=server;
  serverDeadline=draw;
  localTimeAtSync=Date.now();
  targetDrawIssue=String(current.drawIssue||"");
-
  updateCountdown();
  return true;
 }
@@ -452,35 +282,23 @@ function syncDrawClock(current){
 function updateCountdown(){
  const el=document.getElementById("countdown");
  const info=document.getElementById("countdownInfo");
-
  if(!serverDeadline){
   el.textContent="--:--:--";
   info.textContent="后台暂未提供有效的开奖时间";
   return;
  }
-
  const serverNow=serverTimeAtSync+(Date.now()-localTimeAtSync);
  const remaining=Math.max(0,serverDeadline-serverNow);
  const total=Math.floor(remaining/1000);
-
  const h=String(Math.floor(total/3600)).padStart(2,"0");
  const m=String(Math.floor(total%3600/60)).padStart(2,"0");
  const s=String(total%60).padStart(2,"0");
-
  el.textContent=h+":"+m+":"+s;
-
- if(remaining<=0){
-  info.textContent="倒计时结束，正在等待后台确认开奖结果";
- }else{
-  info.textContent="目标期号："+(targetDrawIssue||"等待后台提供");
- }
+ info.textContent=remaining<=0?"倒计时结束，正在等待后台确认开奖结果":"目标期号："+(targetDrawIssue||"等待后台提供");
 }
 
 /* ===== 预测算法 ===== */
-
-function clamp(v,min=0,max=1){
- return Math.max(min,Math.min(max,v));
-}
+function clamp(v,min=0,max=1){return Math.max(min,Math.min(max,v));}
 
 function median(values){
  if(!values.length)return 1;
@@ -508,44 +326,30 @@ function getRate(positions,kind){
 function scoreOneNumber(data,kind,n){
  const base=kind==="A"?.30:.70;
  const positions=getPositionHistory(data,n);
-
  const r5=getRate(positions.slice(0,5),kind);
  const r10=getRate(positions.slice(0,10),kind);
  const r20=getRate(positions.slice(0,20),kind);
  const r30=getRate(positions.slice(0,30),kind);
  const r60=getRate(positions.slice(0,60),kind);
  const r100=getRate(positions.slice(0,100),kind);
-
  const gapIndex=positions.findIndex(p=>isTargetPosition(p,kind));
  const gap=gapIndex<0?data.length:gapIndex;
  const expectedGap=1/base;
-
  const frequency=r10*.50+r30*.30+r100*.20;
  const omission=clamp(Math.exp(-Math.abs(gap-expectedGap)/expectedGap));
  const trend=clamp(.5+r10-r30);
  const multi=r5*.40+r20*.35+r60*.25;
-
  const hitIndices=[];
- positions.forEach((p,i)=>{
-  if(isTargetPosition(p,kind))hitIndices.push(i);
- });
-
+ positions.forEach((p,i)=>{if(isTargetPosition(p,kind))hitIndices.push(i);});
  const intervals=[];
- for(let i=1;i<hitIndices.length;i++){
-  intervals.push(hitIndices[i]-hitIndices[i-1]);
- }
-
+ for(let i=1;i<hitIndices.length;i++)intervals.push(hitIndices[i]-hitIndices[i-1]);
  const typicalCycle=median(intervals);
- const cycle=intervals.length
-  ?clamp(Math.exp(-Math.abs(gap-typicalCycle)/Math.max(1,typicalCycle)))
-  :base;
-
+ const cycle=intervals.length?clamp(Math.exp(-Math.abs(gap-typicalCycle)/Math.max(1,typicalCycle))):base;
  let transition=base;
-
  if(data.length>1){
-  const zoneNow=data[0].code.indexOf(n)<3?0:data[0].code.indexOf(n)<7?1:2;
+  const currentPos=data[0].code.indexOf(n);
+  const zoneNow=currentPos<3?0:currentPos<7?1:2;
   let same=0,success=0;
-
   for(let i=1;i<data.length;i++){
    const p=data[i].code.indexOf(n);
    const zone=p<3?0:p<7?1:2;
@@ -553,32 +357,22 @@ function scoreOneNumber(data,kind,n){
    same++;
    if(isTargetPosition(data[i-1].code.indexOf(n),kind))success++;
   }
-
   transition=(success+base*8)/(same+8);
  }
-
  const adaptive=frequency*.45+trend*.20+transition*.25+multi*.10;
  const ensemble=frequency*.18+omission*.04+trend*.14+multi*.18+cycle*.08+transition*.22+adaptive*.16;
-
- return {
-  frequency,omission,trend,multi,
-  cycle,transition,adaptive,ensemble
- };
+ return {frequency,omission,trend,multi,cycle,transition,adaptive,ensemble};
 }
 
 function scoreNumbers(data,kind){
  const out={};
- for(let n=1;n<=10;n++){
-  out[n]=scoreOneNumber(data,kind,n);
- }
+ for(let n=1;n<=10;n++)out[n]=scoreOneNumber(data,kind,n);
  return out;
 }
 
 function rankFor(data,kind,model){
  const scores=scoreNumbers(data,kind);
- return Object.keys(scores).map(Number).sort((a,b)=>
-  scores[b][model]-scores[a][model]||a-b
- )[0];
+ return Object.keys(scores).map(Number).sort((a,b)=>scores[b][model]-scores[a][model]||a-b)[0];
 }
 
 function testModels(data,kind){
@@ -586,259 +380,157 @@ function testModels(data,kind){
  const minTrain=30;
  const maxTests=Math.min(120,data.length-minTrain);
  const result={};
-
- MODEL_KEYS.forEach(m=>{
-  result[m]={hit:0,total:0,rate:0,adjusted:base};
- });
-
+ MODEL_KEYS.forEach(m=>result[m]={hit:0,total:0,rate:0,adjusted:base});
  for(let i=0;i<maxTests;i++){
   const train=data.slice(i+1);
   if(train.length<minTrain)continue;
-
   const actual=data[i].code;
   const target=kind==="A"?actual.slice(0,3):kind==="B"?actual.slice(0,7):actual.slice(1,8);
-
   MODEL_KEYS.forEach(m=>{
    if(target.includes(rankFor(train,kind,m)))result[m].hit++;
    result[m].total++;
   });
  }
-
  MODEL_KEYS.forEach(m=>{
   const x=result[m];
   x.rate=x.total?x.hit/x.total:0;
   x.adjusted=x.total?(x.rate*x.total+base*30)/(x.total+30):base;
  });
-
  return result;
 }
 
 function chooseModel(data,kind){
  const tests=testModels(data,kind);
  let best=MODEL_KEYS[0];
-
- MODEL_KEYS.forEach(m=>{
-  if(tests[m].adjusted>tests[best].adjusted)best=m;
- });
-
+ MODEL_KEYS.forEach(m=>{if(tests[m].adjusted>tests[best].adjusted)best=m;});
  return {model:best,tests};
 }
 
 function chooseNinePosition(data,seed=null){
  const sample=data.slice(0,100);
  if(!sample.length)return {position:1,excluded:1,rate:0};
-
  let bestRate=-1;
  const candidates=[];
-
  for(let pos=0;pos<10;pos++){
   const counts=Array(11).fill(0);
-
-  sample.forEach(d=>{
-   const n=Number(d.code[pos]);
-   if(n>=1&&n<=10)counts[n]++;
-  });
-
+  sample.forEach(d=>{const n=Number(d.code[pos]);if(n>=1&&n<=10)counts[n]++;});
   let minCount=counts[1];
-  for(let n=2;n<=10;n++){
-   if(counts[n]<minCount)minCount=counts[n];
-  }
-
+  for(let n=2;n<=10;n++)if(counts[n]<minCount)minCount=counts[n];
   const excludedNumbers=[];
-  for(let n=1;n<=10;n++){
-   if(counts[n]===minCount)excludedNumbers.push(n);
-  }
-
+  for(let n=1;n<=10;n++)if(counts[n]===minCount)excludedNumbers.push(n);
   const excluded=excludedNumbers[0];
   const rate=1-minCount/sample.length;
-
-  if(rate>bestRate){
-   bestRate=rate;
-   candidates.length=0;
-   candidates.push({position:pos+1,excluded,rate});
-  }else if(Math.abs(rate-bestRate)<1e-12){
-   candidates.push({position:pos+1,excluded,rate});
-  }
+  if(rate>bestRate){bestRate=rate;candidates.length=0;candidates.push({position:pos+1,excluded,rate});}
+  else if(Math.abs(rate-bestRate)<1e-12)candidates.push({position:pos+1,excluded,rate});
  }
-
  if(candidates.length===1)return candidates[0];
-
- let index;
-
+ let index=0;
  if(seed!==null&&seed!==undefined){
-  const str=String(seed);
   let hash=0;
-  for(let i=0;i<str.length;i++){
-   hash=((hash<<5)-hash+str.charCodeAt(i))|0;
-  }
+  const str=String(seed);
+  for(let i=0;i<str.length;i++)hash=((hash<<5)-hash+str.charCodeAt(i))|0;
   index=Math.floor(Math.abs(hash)%candidates.length);
- }else{
-  index=Math.floor(Math.random()*candidates.length);
- }
-
+ }else index=Math.floor(Math.random()*candidates.length);
  return candidates[index];
 }
 
 function testNineSystem(data){
  const minTrain=30;
  const maxTests=Math.min(120,data.length-minTrain);
- const result={hit:0,total:0,rate:0,adjusted:0.90,baseline:0.90};
-
+ const result={hit:0,total:0,rate:0,adjusted:.90,baseline:.90};
  for(let i=0;i<maxTests;i++){
   const train=data.slice(i+1);
   if(train.length<minTrain)continue;
-
   const actualDraw=data[i];
   const choice=chooseNinePosition(train,actualDraw.issue);
   const actualNumber=actualDraw.code[choice.position-1];
-  const hit=actualNumber!==choice.excluded;
-
+  if(actualNumber!==choice.excluded)result.hit++;
   result.total++;
-  if(hit)result.hit++;
  }
-
  result.rate=result.total?result.hit/result.total:0;
- result.adjusted=result.total
-  ?(result.rate*result.total+0.90*30)/(result.total+30)
-  :0.90;
-
+ result.adjusted=result.total?(result.rate*result.total+.90*30)/(result.total+30):.90;
  return result;
 }
 
 function makeNextPredictions(targetIssue){
  if(!targetIssue||draws.length<30)return;
-
  const add=(kind,create)=>{
-  if(!predictions.some(p=>p.target===targetIssue&&p.kind===kind)){
-   predictions.unshift(create());
-  }
+  if(!predictions.some(p=>String(p.target)===String(targetIssue)&&p.kind===kind))predictions.unshift(create());
  };
-
  for(const kind of ["A","B","C"]){
   const choice=chooseModel(draws,kind);
-
   add(kind,()=>({
-   kind,target:targetIssue,base:draws[0].issue,
+   kind,target:String(targetIssue),base:draws[0].issue,
    number:rankFor(draws,kind,choice.model),
-   model:choice.model,
-   result:"pending",
+   model:choice.model,result:"pending",
    created:new Date().toISOString()
   }));
  }
-
  add("D",()=>{
   const choice=chooseNinePosition(draws);
-  const numbers=Array.from({length:10},(_,i)=>i+1)
-   .filter(n=>n!==choice.excluded);
-
+  const numbers=Array.from({length:10},(_,i)=>i+1).filter(n=>n!==choice.excluded);
   return {
-   kind:"D",
-   target:targetIssue,
-   base:draws[0].issue,
-   position:choice.position,
-   numbers,
-   excluded:choice.excluded,
-   positionRate:choice.rate,
-   model:"历史位置九码分析",
-   result:"pending",
-   created:new Date().toISOString()
+   kind:"D",target:String(targetIssue),base:draws[0].issue,
+   position:choice.position,numbers,excluded:choice.excluded,
+   positionRate:choice.rate,model:"历史位置九码分析",
+   result:"pending",created:new Date().toISOString()
   };
  });
 }
 
 function settlePredictions(){
- const byIssue=new Map(draws.map(d=>[d.issue,d]));
+ const byIssue=new Map(draws.map(d=>[String(d.issue),d]));
  let changed=false;
-
  predictions.forEach(p=>{
   if(p.result!=="pending")return;
-
   const d=byIssue.get(String(p.target));
   if(!d)return;
-
   let hit=false;
-
   if(p.kind==="D"){
    if(Number(p.position)>=1&&Number(p.position)<=10){
-    hit=Array.isArray(p.numbers)&&
-     p.numbers.includes(Number(d.code[Number(p.position)-1]));
+    hit=Array.isArray(p.numbers)&&p.numbers.includes(Number(d.code[Number(p.position)-1]));
    }else{
-    hit=Array.isArray(p.numbers)&&
-     p.numbers.some(n=>d.code.includes(Number(n)));
+    hit=Array.isArray(p.numbers)&&p.numbers.some(n=>d.code.includes(Number(n)));
    }
   }else{
-   const positions=p.kind==="A"
-    ?d.code.slice(0,3)
-    :p.kind==="B"
-     ?d.code.slice(0,7)
-     :d.code.slice(1,8);
-
+   const positions=p.kind==="A"?d.code.slice(0,3):p.kind==="B"?d.code.slice(0,7):d.code.slice(1,8);
    hit=positions.includes(Number(p.number));
   }
-
   p.result=hit?"hit":"miss";
   p.actual=d.code;
   p.settledAt=d.time;
   changed=true;
  });
-
  return changed;
 }
 
 /* ===== 自动刷新 ===== */
-
 async function refreshAll(){
  if(refreshInFlight)return;
-
  refreshInFlight=true;
  const status=document.getElementById("status");
  status.textContent="正在读取最新开奖和历史数据…";
-
  try{
-  const results=await Promise.all([
-   fetchJSON(API),
-   fetchJSON(HISTORY_API)
-  ]);
-
+  const results=await Promise.all([fetchJSON(API),fetchJSON(HISTORY_API)]);
   const current=unwrapLatest(results[0]);
   if(!current)throw new Error("最新开奖数据格式无法识别");
-
-  // 同步后台服务器时间和下一期开奖时间
-  syncDrawClock(current);
-
+  const clockOK=syncDrawClock(current);
   const latestCode=validCode(current.preDrawCode);
   if(!latestCode)throw new Error("最新开奖号码格式不正确");
-
-  latest={
-   issue:String(current.preDrawIssue),
-   time:String(current.preDrawTime||""),
-   code:latestCode
-  };
-
+  latest={issue:String(current.preDrawIssue),time:String(current.preDrawTime||""),code:latestCode};
   const old=extractHistory(results[1]);
   if(!old.length)throw new Error("历史接口没有识别到有效开奖记录");
-
   mergeDraws(old);
   mergeDraws([latest]);
-
   if(hasAndroidBridge())syncAndroidData();
-
   settlePredictions();
-
-  // 只有后台明确提供下一期号码时才生成下一期预测
   makeNextPredictions(String(current.drawIssue||""));
-
   save();
   lastSyncTime=new Date();
   renderAll();
-
-  status.textContent=hasAndroidBridge()
-   ?"同步成功 · Android后台记录已连接 · "+draws.length+"期历史数据"
-   :"数据同步成功 · 已读取 "+draws.length+" 期";
-
+  status.textContent=(clockOK?"倒计时已同步":"数据已同步，开奖时间暂不可用")+" · "+draws.length+"期历史数据";
  }catch(e){
   status.textContent="读取失败："+e.message+" · 可稍后重试";
-
   if(hasAndroidBridge())syncAndroidData();
   renderAll();
  }finally{
@@ -847,16 +539,11 @@ async function refreshAll(){
 }
 
 /* ===== 页面显示 ===== */
-
 function stats(kind){
  const list=predictions.filter(p=>p.kind===kind&&p.result!=="pending");
  const hit=list.filter(p=>p.result==="hit").length;
  const miss=list.filter(p=>p.result==="miss").length;
-
- return {
-  hit,miss,
-  rate:hit+miss?hit/(hit+miss)*100:null
- };
+ return {hit,miss,rate:hit+miss?hit/(hit+miss)*100:null};
 }
 
 function showPage(id,btn){
@@ -868,19 +555,15 @@ function showPage(id,btn){
 
 function renderStats(){
  for(const k of ["A","B","C","D"]){
-  const s=stats(k);
-  const p=k.toLowerCase();
-
+  const s=stats(k),p=k.toLowerCase();
   document.getElementById(p+"Hit").textContent=s.hit;
   document.getElementById(p+"Miss").textContent=s.miss;
-  document.getElementById(p+"Rate").textContent=
-   s.rate===null?"--%":s.rate.toFixed(1)+"%";
+  document.getElementById(p+"Rate").textContent=s.rate===null?"--%":s.rate.toFixed(1)+"%";
  }
 }
 
 function renderLatest(){
  if(!latest)return;
-
  document.getElementById("latestIssue").textContent=latest.issue;
  document.getElementById("latestTime").textContent=latest.time;
  document.getElementById("latestBalls").innerHTML=latest.code.map(ball).join("");
@@ -890,184 +573,78 @@ function renderPred(){
  for(const k of ["A","B","C"]){
   const p=predictions.find(x=>x.kind===k&&x.result==="pending");
   const el=document.getElementById("pred"+k);
-
-  if(!p){
-   el.textContent="--";
-  }else{
-   el.innerHTML=`<span class="pred-number ball-${Number(p.number)}">${esc(p.number)}</span>`;
-  }
-
-  document.getElementById("algo"+k).textContent=
-   !p?"等待生成预测":
-   "算法："+(NAMES[MODEL_KEYS.indexOf(p.model)]||p.model);
+  if(!p)el.textContent="--";
+  else el.innerHTML=`<span class="pred-number ball-${Number(p.number)}">${esc(p.number)}</span>`;
+  document.getElementById("algo"+k).textContent=!p?"等待生成预测":"算法："+(NAMES[MODEL_KEYS.indexOf(p.model)]||p.model);
  }
-
  const pD=predictions.find(x=>x.kind==="D"&&x.result==="pending");
  const dEl=document.getElementById("predD");
-
- if(!pD){
-  dEl.textContent="--";
- }else{
-  dEl.innerHTML=pD.numbers.map(ball).join("");
- }
-
- document.getElementById("algoD").textContent=
-  !pD?"等待分析":
-  "推荐位置：第"+(pD.position||"--")+"名 · 排除："+(pD.excluded||"--");
-
+ dEl.innerHTML=pD&&Array.isArray(pD.numbers)?pD.numbers.map(ball).join(""):"--";
+ document.getElementById("algoD").textContent=!pD?"等待分析":"推荐位置：第"+(pD.position||"--")+"名 · 排除："+(pD.excluded||"--");
  const a=predictions.find(p=>p.kind==="A"&&p.result==="pending");
- document.getElementById("targetIssue").textContent=
-  a?"目标期："+a.target:"等待预测期号";
+ document.getElementById("targetIssue").textContent=a?"目标期："+a.target:"等待预测期号";
 }
 
 function renderHistory(){
  const el=document.getElementById("historyList");
-
- if(!draws.length){
-  el.textContent="暂无有效开奖记录";
-  return;
- }
-
+ if(!draws.length){el.textContent="暂无有效开奖记录";return;}
  el.innerHTML=draws.slice(0,15).map(d=>`
   <div class="draw">
-   <div class="drawhead">
-    <b>第${esc(d.issue)}期</b>
-    <span>${esc(d.time)}</span>
-   </div>
+   <div class="drawhead"><b>第${esc(d.issue)}期</b><span>${esc(d.time)}</span></div>
    <div class="balls">${d.code.map(ball).join("")}</div>
-  </div>
- `).join("");
+  </div>`).join("");
 }
 
 function renderAnalysis(){
  if(!draws.length)return;
-
  let html="";
-
  for(let n=1;n<=10;n++){
   const pos=draws.map(d=>d.code.indexOf(n));
   const r3=pos.filter(p=>p<3).length/draws.length*100;
   const r7=pos.filter(p=>p<7).length/draws.length*100;
   const r28=pos.filter(p=>p>=1&&p<8).length/draws.length*100;
-
-  html+=`
-   <div style="margin:12px 0">
-    <div class="row">
-     <span>${ball(n)}　号码 ${n}</span>
-     <span class="small">前三 ${r3.toFixed(1)}% · 前七 ${r7.toFixed(1)}% · 第2-8名 ${r28.toFixed(1)}%</span>
-    </div>
-    <div class="progress"><i style="width:${r3}%"></i></div>
-   </div>
-  `;
+  html+=`<div style="margin:12px 0"><div class="row"><span>${ball(n)}　号码 ${n}</span><span class="small">前三 ${r3.toFixed(1)}% · 前七 ${r7.toFixed(1)}% · 第2-8名 ${r28.toFixed(1)}%</span></div><div class="progress"><i style="width:${r3}%"></i></div></div>`;
  }
-
  document.getElementById("numberAnalysis").innerHTML=html;
-
  const gaps=[];
-
  for(let n=1;n<=10;n++){
-  const gap=draws.findIndex(d=>{
-   const p=d.code.indexOf(n);
-   return p>=1&&p<8;
-  });
-
+  const gap=draws.findIndex(d=>{const p=d.code.indexOf(n);return p>=1&&p<8;});
   gaps.push({n,gap:gap<0?draws.length:gap});
  }
-
- document.getElementById("omissionAnalysis").innerHTML=gaps.map(x=>`
-  <div class="row" style="padding:7px 0">
-   ${ball(x.n)}
-   <span>进入第2至第8名遗漏 <b>${x.gap}</b> 期</span>
-  </div>
- `).join("");
+ document.getElementById("omissionAnalysis").innerHTML=gaps.map(x=>`<div class="row" style="padding:7px 0">${ball(x.n)}<span>进入第2至第8名遗漏 <b>${x.gap}</b> 期</span></div>`).join("");
 }
 
 function renderArena(){
  const ids={A:"arenaA",B:"arenaB",C:"arenaC"};
-
  if(draws.length<35){
-  Object.values(ids).forEach(id=>{
-   document.getElementById(id).innerHTML=
-    '<div class="empty">至少需要35期有效开奖记录才能进行初步回测</div>';
-  });
-
-  document.getElementById("arenaD").innerHTML=
-   '<div class="empty">至少需要35期有效开奖记录才能进行D系统回测</div>';
+  Object.values(ids).forEach(id=>document.getElementById(id).innerHTML='<div class="empty">至少需要35期有效开奖记录才能进行初步回测</div>');
+  document.getElementById("arenaD").innerHTML='<div class="empty">至少需要35期有效开奖记录才能进行D系统回测</div>';
   return;
  }
-
  for(const kind of ["A","B","C"]){
   const test=testModels(draws,kind);
-  const el=document.getElementById(ids[kind]);
   const base=kind==="A"?30:70;
-
-  el.innerHTML=MODEL_KEYS.map((m,i)=>{
+  document.getElementById(ids[kind]).innerHTML=MODEL_KEYS.map((m,i)=>{
    const x=test[m];
-
-   return `
-    <div style="padding:10px 0;border-bottom:1px solid #293950">
-     <div class="row">
-      <b>${NAMES[i]}</b>
-      <span>${(x.rate*100).toFixed(1)}%</span>
-     </div>
-     <div class="progress"><i style="width:${Math.min(100,x.rate*100)}%"></i></div>
-     <div class="small">命中 ${x.hit} / 回测 ${x.total} · 理论基线 ${base}%</div>
-     <div class="small">基线调整评分：${(x.adjusted*100).toFixed(1)}%</div>
-    </div>
-   `;
+   return `<div style="padding:10px 0;border-bottom:1px solid #293950"><div class="row"><b>${NAMES[i]}</b><span>${(x.rate*100).toFixed(1)}%</span></div><div class="progress"><i style="width:${Math.min(100,x.rate*100)}%"></i></div><div class="small">命中 ${x.hit} / 回测 ${x.total} · 理论基线 ${base}%</div><div class="small">基线调整评分：${(x.adjusted*100).toFixed(1)}%</div></div>`;
   }).join("");
  }
-
  const d=testNineSystem(draws);
  document.getElementById("arenaD").innerHTML=`
-  <div class="stats">
-   <div class="stat"><span>累计命中</span><b class="green">${d.hit}</b></div>
-   <div class="stat"><span>累计未中</span><b class="red">${d.total-d.hit}</b></div>
-   <div class="stat"><span>历史命中率</span><b>${(d.rate*100).toFixed(1)}%</b></div>
-  </div>
-  <div style="padding:12px 0">
-   <div class="row"><b>系统 D · 指定名次九码</b><span>${(d.rate*100).toFixed(1)}%</span></div>
-   <div class="progress"><i style="width:${Math.min(100,d.rate*100)}%"></i></div>
-   <div class="small">命中 ${d.hit} / 回测 ${d.total} 期</div>
-   <div class="small">理论随机基线：90% · 基线调整评分：${(d.adjusted*100).toFixed(1)}%</div>
-  </div>
- `;
+  <div class="stats"><div class="stat"><span>累计命中</span><b class="green">${d.hit}</b></div><div class="stat"><span>累计未中</span><b class="red">${d.total-d.hit}</b></div><div class="stat"><span>历史命中率</span><b>${(d.rate*100).toFixed(1)}%</b></div></div>
+  <div style="padding:12px 0"><div class="row"><b>系统 D · 指定名次九码</b><span>${(d.rate*100).toFixed(1)}%</span></div><div class="progress"><i style="width:${Math.min(100,d.rate*100)}%"></i></div><div class="small">命中 ${d.hit} / 回测 ${d.total} 期</div><div class="small">理论随机基线：90% · 基线调整评分：${(d.adjusted*100).toFixed(1)}%</div></div>`;
 }
 
 function renderRecords(){
  const el=document.getElementById("recordList");
-
- if(!predictions.length){
-  el.textContent="暂无预测记录";
-  return;
- }
-
+ if(!predictions.length){el.textContent="暂无预测记录";return;}
  el.innerHTML=predictions.slice(0,150).map(p=>{
   const label=p.result==="pending"?"待开奖":p.result==="hit"?"中":"挂";
   const cls=p.result==="hit"?"green":p.result==="miss"?"red":"";
-
-  const model=p.kind==="D"
-   ?(p.position?"位置九码分析 · 第"+p.position+"名":"旧版九码规则")
-   :(NAMES[MODEL_KEYS.indexOf(p.model)]||p.model||"");
-
-  const rec=p.kind==="D"&&Array.isArray(p.numbers)
-   ?p.numbers.join("、"):p.number;
-
+  const model=p.kind==="D"?(p.position?"位置九码分析 · 第"+p.position+"名":"旧版九码规则"):(NAMES[MODEL_KEYS.indexOf(p.model)]||p.model||"");
+  const rec=p.kind==="D"&&Array.isArray(p.numbers)?p.numbers.join("、"):p.number;
   const actual=Array.isArray(p.actual)?p.actual.join("-"):"";
-
-  return `
-   <div class="draw">
-    <div class="row">
-     <b>系统 ${esc(p.kind)} · 第${esc(p.target)}期</b>
-     <span class="${cls}">${label}</span>
-    </div>
-    <div class="small">
-     推荐位置：${p.kind==="D"?(p.position?"第"+esc(p.position)+"名":"旧版全位置"):"按系统规则"}
-    　推荐号码：${esc(rec)}　算法：${esc(model)}
-    </div>
-    ${actual?`<div class="small">实际号码：${esc(actual)}</div>`:""}
-   </div>
-  `;
+  return `<div class="draw"><div class="row"><b>系统 ${esc(p.kind)} · 第${esc(p.target)}期</b><span class="${cls}">${label}</span></div><div class="small">推荐位置：${p.kind==="D"?(p.position?"第"+esc(p.position)+"名":"旧版全位置"):"按系统规则"}　推荐号码：${esc(rec)}　算法：${esc(model)}</div>${actual?`<div class="small">实际号码：${esc(actual)}</div>`:""}</div>`;
  }).join("");
 }
 
@@ -1079,72 +656,39 @@ function renderAll(){
  renderAnalysis();
  renderArena();
  renderRecords();
-
  document.getElementById("dataCount").textContent=draws.length+"期";
-
- const syncText=lastSyncTime
-  ?"最近同步："+lastSyncTime.toLocaleString()
-  :"尚未完成同步";
-
- const backgroundText=hasAndroidBridge()
-  ?"Android后台记录已连接 · "
-  :"网页本地模式";
-
- document.getElementById("dataInfo").textContent=
-  syncText+" · "+backgroundText;
+ const syncText=lastSyncTime?"最近同步："+lastSyncTime.toLocaleString():"尚未完成同步";
+ const backgroundText=hasAndroidBridge()?"Android后台记录已连接":"网页本地模式";
+ document.getElementById("dataInfo").textContent=syncText+" · "+backgroundText;
 }
 
 function clearPredictions(){
  if(!confirm("确定清空网页本地保存的预测记录吗？Android后台记录不会被删除。"))return;
-
  predictions=[];
  save();
  renderAll();
 }
 
-/* ===== 程序初始化 ===== */
-
+/* ===== 初始化 ===== */
 function initApp(){
- draws=load(STORE.history,[])
-  .map(normalizeDraw)
-  .filter(Boolean);
-
- predictions=load(STORE.predictions,[])
-  .filter(p=>p&&p.target&&p.kind);
-
- // 优先合并 Android 后台已经保存的记录
- if(hasAndroidBridge()){
-  syncAndroidData();
- }
-
+ draws=load(STORE.history,[]).map(normalizeDraw).filter(Boolean);
+ predictions=load(STORE.predictions,[]).filter(p=>p&&p.target&&p.kind);
+ if(hasAndroidBridge())syncAndroidData();
  mergeDraws([]);
-
  renderAll();
  updateCountdown();
-
- // 打开页面后立即读取一次
  refreshAll();
 
- // 每秒更新倒计时
  setInterval(updateCountdown,1000);
+ setInterval(()=>{if(!document.hidden)refreshAll();},10000);
 
- // 每10秒检查一次开奖数据
- setInterval(()=>{
-  if(!document.hidden)refreshAll();
- },10000);
-
- // 从其他页面返回时重新检查
  document.addEventListener("visibilitychange",()=>{
   if(!document.hidden)refreshAll();
  });
-
- window.addEventListener("pageshow",()=>{
-  refreshAll();
- });
+ window.addEventListener("pageshow",()=>refreshAll());
 }
 
 initApp();
-
 </script>
 </body>
 </html>
