@@ -960,4 +960,31 @@ public class MonitorService extends Service {
         return builder.build();
     }
 
-    private void updateNotification(String messa
+    private void updateNotification(String message) {
+        NotificationManager manager =
+                (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+
+        if (manager != null) {
+            manager.notify(
+                    NOTIFICATION_ID,
+                    buildNotification(message)
+            );
+        }
+    }
+
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        return START_STICKY;
+    }
+
+    @Override
+    public void onDestroy() {
+        if (scheduler != null) scheduler.shutdownNow();
+        super.onDestroy();
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+}
