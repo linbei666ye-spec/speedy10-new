@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
@@ -91,7 +90,7 @@ th{color:var(--muted);font-weight:normal}
 <main>
 <section id="home" class="page active">
 
- <!-- 最新开奖结果：移动到智能预测推荐上面 -->
+ <!-- 第一项：最新开奖结果 -->
  <div class="card">
   <div class="row">
    <h2>最新开奖结果</h2>
@@ -101,6 +100,7 @@ th{color:var(--muted);font-weight:normal}
   <div class="balls" id="latestBalls"></div>
  </div>
 
+ <!-- 第二项：智能预测推荐 -->
  <div class="card">
   <div class="row">
    <h2>智能预测推荐</h2>
@@ -1111,6 +1111,7 @@ function renderArena(){
  `;
 }
 
+/* 修正后的预测历史显示函数 */
 function renderRecords(){
  const el=document.getElementById("recordList");
 
@@ -1143,16 +1144,7 @@ function renderRecords(){
     <div class="row">
      <b>系统 ${esc(p.kind)} · 第${esc(p.target)}期</b>
      <span class="${cls}">${label}</span>
-    </div>
-    <div class="small">
-const actual=Array.isArray(p.actual)?p.actual.join("-"):"";
-
-  return `
-   <div class="draw">
-    <div class="row">
-     <b>系统 ${esc(p.kind)} · 第${esc(p.target)}期</b>
-     <span class="${cls}">${label}</span>
-    </div>
+        </div>
     <div class="small">
      推荐位置：${p.kind==="D"
       ?(p.position?"第"+esc(p.position)+"名":"旧版全位置")
@@ -1166,9 +1158,9 @@ const actual=Array.isArray(p.actual)?p.actual.join("-"):"";
 }
 
 function renderAll(){
- renderStats();
  renderLatest();
  renderPred();
+ renderStats();
  renderHistory();
  renderAnalysis();
  renderArena();
@@ -1176,68 +1168,57 @@ function renderAll(){
 
  document.getElementById("dataCount").textContent=draws.length+"期";
 
- const syncText=lastSyncTime
-  ?"最近同步："+lastSyncTime.toLocaleString()
-  :"尚未完成同步";
-
- const backgroundText=hasAndroidBridge()
-  ?"Android后台记录已连接；后台服务负责自动预测和结算。"
-  :"当前为普通网页模式，关闭网页后不会在后台自动运行。";
-
  document.getElementById("dataInfo").textContent=
-  "本机最多保存最近500期有效记录；首页展示最近15期。"+
-  syncText+"。"+backgroundText;
+  draws.length
+   ?"最新期号："+(draws[0]?.issue||"--")+
+    " · 最近同步："+(lastSyncTime?lastSyncTime.toLocaleTimeString():"--")
+   :"尚未读取历史数据";
 }
 
 function clearPredictions(){
- if(!confirm("确定清空网页本地预测记录吗？Android后台保存的记录不会被删除。"))return;
+ if(!confirm("确定清空网页本地预测记录吗？"))return;
 
- predictions=[];
+ predictions=predictions.filter(p=>p.source==="android");
  save();
  renderAll();
 }
 
-/* 启动程序 */
-draws=load(STORE.history,[]);
-predictions=load(STORE.predictions,[]);
+function init(){
+ draws=load(STORE.history,[]);
+ predictions=load(STORE.predictions,[]);
 
-draws=draws.map(normalizeDraw).filter(Boolean)
- .sort(issueSort).slice(0,500);
+ if(!Array.isArray(draws))draws=[];
+ if(!Array.isArray(predictions))predictions=[];
 
-if(hasAndroidBridge())syncAndroidData();
+ draws=draws.map(normalizeDraw).filter(Boolean);
 
-latest=draws.length?draws[0]:null;
+ if(hasAndroidBridge()){
+  syncAndroidData();
+ }
 
-renderAll();
+ settlePredictions();
+ save();
+ renderAll();
 
-/* 倒计时每秒更新 */
-if(countdownTimer)clearInterval(countdownTimer);
+ refreshAll();
 
-countdownTimer=setInterval(()=>{
- updateCountdown();
-},1000);
+ if(normalRefreshTimer!==null)clearInterval(normalRefreshTimer);
+ if(countdownTimer!==null)clearInterval(countdownTimer);
 
-/* 每30秒自动刷新 */
-if(normalRefreshTimer)clearInterval(normalRefreshTimer);
+ normalRefreshTimer=setInterval(()=>{
+  refreshAll();
+ },30000);
 
-normalRefreshTimer=setInterval(()=>{
- refreshAll(false);
-},30000);
+ countdownTimer=setInterval(updateCountdown,1000);
+}
 
-/* 从后台回到页面时立即刷新 */
 document.addEventListener("visibilitychange",()=>{
- if(document.visibilityState==="visible"){
-  refreshAll(false);
+ if(!document.hidden){
+  refreshAll();
  }
 });
 
-window.addEventListener("pageshow",()=>{
- refreshAll(false);
-});
-
-/* 打开页面立即刷新 */
-refreshAll(false);
-
+window.addEventListener("load",init);
 </script>
 </body>
 </html>
